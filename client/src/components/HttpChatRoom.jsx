@@ -37,7 +37,7 @@ function HttpChatRoom() {
   useEffect(() => {
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
-      : 'http://localhost:3001';
+      : 'http://localhost:3002';
     
     chatAPI.current = new SimpleChatAPI(baseUrl);
     
@@ -59,11 +59,16 @@ function HttpChatRoom() {
     };
   }, []);
 
+  // 生成唯一用户ID
+  const generateUserId = () => {
+    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.floor(Math.random() * 10000)}`;
+  };
+
   // 加入聊天室
   const handleJoinChat = async () => {
     if (nickname.trim()) {
       const user = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: generateUserId(),
         nickname: nickname.trim(),
         timestamp: new Date().toISOString()
       };

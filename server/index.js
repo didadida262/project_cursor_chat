@@ -166,6 +166,19 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 清理所有用户（用于测试）
+app.post('/api/clear-users', (req, res) => {
+  const userCount = onlineUsers.size;
+  onlineUsers.clear();
+  console.log(`🧹 清理了 ${userCount} 个用户`);
+  
+  res.json({ 
+    success: true, 
+    message: `已清理 ${userCount} 个用户`,
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/api/users', (req, res) => {
   res.json(Array.from(onlineUsers.values()));
 });
@@ -183,6 +196,15 @@ app.get('/api/messages', async (req, res) => {
 // 用户加入API
 app.post('/api/join', (req, res) => {
   const userData = req.body;
+  
+  // 检查是否已存在相同昵称的用户
+  const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
+  if (existingUser) {
+    // 如果存在相同昵称，更新现有用户的ID和加入时间
+    onlineUsers.delete(existingUser.id);
+    console.log(`🔄 更新现有用户昵称: ${userData.nickname}`);
+  }
+  
   const user = {
     id: userData.id,
     nickname: userData.nickname,
@@ -191,7 +213,8 @@ app.post('/api/join', (req, res) => {
   };
   
   onlineUsers.set(userData.id, user);
-  console.log(`✅ 用户通过API加入: ${user.nickname}`);
+  console.log(`✅ 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
+  console.log(`👥 当前在线用户: ${onlineUsers.size} 人`);
   
   res.json({ success: true, user });
 });
@@ -375,7 +398,7 @@ io.on('connection', (socket) => {
 });
 
 // 服务器启动
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`WebSocket server ready for connections`);
