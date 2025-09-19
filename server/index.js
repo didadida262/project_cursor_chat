@@ -11,10 +11,17 @@ const server = createServer(app);
 // MongoDB 连接
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chatroom';
 
+console.log(`🔍 MongoDB URI检查: ${MONGODB_URI ? '已设置' : '未设置'}`);
+console.log(`🔍 MongoDB URI值: ${MONGODB_URI}`);
+
 // 尝试连接 MongoDB，但不阻塞服务器启动
 if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017/chatroom') {
+  console.log('🔄 开始连接MongoDB...');
   mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ MongoDB connected successfully'))
+    .then(() => {
+      console.log('✅ MongoDB connected successfully');
+      console.log(`📊 MongoDB连接状态: ${mongoose.connection.readyState}`);
+    })
     .catch(err => {
       console.error('❌ MongoDB connection error:', err);
       console.log('⚠️ Server will continue without MongoDB (using memory storage)');
@@ -70,7 +77,7 @@ const onlineUsers = new Map();
 const userHeartbeats = new Map();
 
 // 添加服务器实例ID，用于调试Vercel冷启动问题
-const serverInstanceId = `server_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const serverInstanceId = `server_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 console.log(`🆔 服务器实例启动: ${serverInstanceId}`);
 
 // 服务器启动时从MongoDB恢复用户状态
@@ -164,8 +171,10 @@ const MAX_MESSAGES = 1000;
 // 用户状态持久化函数
 async function saveUser(userData) {
   try {
+    console.log(`💾 [${serverInstanceId}] saveUser被调用，MongoDB连接状态: ${mongoose.connection.readyState}`);
     if (mongoose.connection.readyState === 1) {
-      await User.findOneAndUpdate(
+      console.log(`💾 [${serverInstanceId}] 开始保存用户到MongoDB:`, userData);
+      const result = await User.findOneAndUpdate(
         { id: userData.id },
         {
           id: userData.id,
@@ -176,10 +185,12 @@ async function saveUser(userData) {
         },
         { upsert: true, new: true }
       );
-      console.log(`💾 用户状态已保存到MongoDB: ${userData.nickname}`);
+      console.log(`💾 [${serverInstanceId}] 用户状态已保存到MongoDB: ${userData.nickname}`, result);
+    } else {
+      console.log(`💾 [${serverInstanceId}] MongoDB未连接，跳过保存用户状态`);
     }
   } catch (error) {
-    console.error('保存用户状态到MongoDB失败:', error);
+    console.error(`❌ [${serverInstanceId}] 保存用户状态到MongoDB失败:`, error);
   }
 }
 
@@ -200,16 +211,18 @@ async function removeUser(userId) {
 
 async function getAllOnlineUsers() {
   try {
+    console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，MongoDB连接状态: ${mongoose.connection.readyState}`);
     if (mongoose.connection.readyState === 1) {
+      console.log(`💾 [${serverInstanceId}] 开始从MongoDB查询在线用户...`);
       const users = await User.find({ isOnline: true }).lean();
-      console.log(`💾 从MongoDB加载在线用户: ${users.length} 人`);
+      console.log(`💾 [${serverInstanceId}] 从MongoDB加载在线用户: ${users.length} 人`, users);
       return users;
     } else {
-      console.log(`💾 MongoDB未连接，返回空用户列表`);
+      console.log(`💾 [${serverInstanceId}] MongoDB未连接，返回空用户列表`);
       return [];
     }
   } catch (error) {
-    console.error('从MongoDB加载用户失败:', error);
+    console.error(`❌ [${serverInstanceId}] 从MongoDB加载用户失败:`, error);
     return [];
   }
 }
@@ -407,6 +420,7 @@ app.post('/api/join', async (req, res) => {
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 [${serverInstanceId}] MongoDB连接状态: ${mongoose.connection.readyState}`);
   
   // 检查是否已存在相同昵称的用户
   const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
@@ -427,7 +441,9 @@ app.post('/api/join', async (req, res) => {
   userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
   
   // 同时保存到MongoDB
+  console.log(`💾 [${serverInstanceId}] 开始保存用户到MongoDB:`, user);
   await saveUser(user);
+  console.log(`💾 [${serverInstanceId}] 用户保存完成`);
   
   console.log(`✅ [${serverInstanceId}] 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
   console.log(`👥 [${serverInstanceId}] 当前在线用户: ${onlineUsers.size} 人`);
