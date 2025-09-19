@@ -105,10 +105,15 @@ function SimpleChatRoom() {
         timestamp: new Date().toISOString()
       };
 
+      console.log('🚀 用户尝试加入聊天室:', user);
+      console.log('🔌 Socket连接状态:', socket.connected);
+      
       setUserInfo(user);
       socket.emit('join', user);
       setShowNicknameInput(false);
       message.success(`欢迎 ${user.nickname}！`);
+      
+      console.log('📤 已发送join事件');
     }
   };
 

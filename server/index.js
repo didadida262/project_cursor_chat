@@ -176,6 +176,8 @@ io.on('connection', (socket) => {
 
   // 用户加入聊天室
   socket.on('join', async (userData) => {
+    console.log('📥 收到join事件:', userData);
+    
     const user = {
       id: socket.id,
       nickname: userData.nickname,
@@ -184,24 +186,27 @@ io.on('connection', (socket) => {
     };
     
     onlineUsers.set(socket.id, user);
+    console.log('👥 在线用户列表更新:', Array.from(onlineUsers.values()));
     
     // 通知其他用户有新用户加入
     socket.broadcast.emit('userJoined', user);
+    console.log('📢 已通知其他用户有新用户加入');
     
     // 发送当前在线用户列表
     io.emit('users', Array.from(onlineUsers.values()));
+    console.log('📤 已发送用户列表给所有用户');
     
     // 发送历史消息
     try {
       const messageHistory = await getMessages();
       socket.emit('messages', messageHistory);
-      console.log(`Sent ${messageHistory.length} messages to ${user.nickname}`);
+      console.log(`📜 已发送 ${messageHistory.length} 条历史消息给 ${user.nickname}`);
     } catch (error) {
-      console.error('Error sending message history:', error);
+      console.error('❌ 发送历史消息失败:', error);
       socket.emit('messages', []);
     }
     
-    console.log(`User ${user.nickname} joined the chatroom`);
+    console.log(`✅ 用户 ${user.nickname} 成功加入聊天室`);
   });
 
   // 处理消息
