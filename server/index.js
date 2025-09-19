@@ -3,54 +3,72 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import mongoose from 'mongoose';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const app = express();
 const server = createServer(app);
 
-// MongoDB 连接
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chatroom';
+// PostgreSQL (Neon) 连接
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-console.log(`🔍 MongoDB URI检查: ${MONGODB_URI ? '已设置' : '未设置'}`);
-console.log(`🔍 MongoDB URI值: ${MONGODB_URI}`);
+console.log(`🔍 PostgreSQL URI检查: ${DATABASE_URL ? '已设置' : '未设置'}`);
+console.log(`🔍 环境变量DATABASE_URL: ${process.env.DATABASE_URL ? '已设置' : '未设置'}`);
+console.log(`🔍 环境变量POSTGRES_URL: ${process.env.POSTGRES_URL ? '已设置' : '未设置'}`);
 
-// 尝试连接 MongoDB，但不阻塞服务器启动
-if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017/chatroom') {
-  console.log('🔄 开始连接MongoDB...');
-  mongoose.connect(MONGODB_URI)
-    .then(() => {
-      console.log('✅ MongoDB connected successfully');
-      console.log(`📊 MongoDB连接状态: ${mongoose.connection.readyState}`);
-    })
-    .catch(err => {
-      console.error('❌ MongoDB connection error:', err);
-      console.log('⚠️ Server will continue without MongoDB (using memory storage)');
+// 创建数据库连接池
+let pool = null;
+if (DATABASE_URL) {
+  try {
+    pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
+    console.log('✅ PostgreSQL连接池创建成功');
+  } catch (error) {
+    console.error('❌ PostgreSQL连接池创建失败:', error);
+    console.log('⚠️ Server will continue without PostgreSQL (using memory storage)');
+  }
 } else {
-  console.log('⚠️ No MongoDB URI provided, using memory storage');
+  console.log('⚠️ No PostgreSQL URI provided, using memory storage');
+  console.log('⚠️ 请检查Vercel环境变量中的DATABASE_URL设置');
 }
 
-// 消息模型
-const messageSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  userId: { type: String, required: true },
-  nickname: { type: String, required: true },
-  message: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
-});
+// 初始化数据库表
+async function initDatabase() {
+  if (!pool) return;
+  
+  try {
+    // 创建消息表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        nickname VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // 创建用户表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        nickname VARCHAR(255) NOT NULL,
+        is_online BOOLEAN DEFAULT true,
+        join_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('✅ 数据库表初始化完成');
+  } catch (error) {
+    console.error('❌ 数据库表初始化失败:', error);
+  }
+}
 
-const Message = mongoose.model('Message', messageSchema);
-
-// 用户模型
-const userSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  nickname: { type: String, required: true },
-  isOnline: { type: Boolean, default: true },
-  joinTime: { type: Date, default: Date.now },
-  lastHeartbeat: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
+// 启动时初始化数据库
+initDatabase();
 
 // 内存存储作为备用方案
 const io = new Server(server, {
@@ -171,69 +189,81 @@ const MAX_MESSAGES = 1000;
 // 用户状态持久化函数
 async function saveUser(userData) {
   try {
-    console.log(`💾 [${serverInstanceId}] saveUser被调用，MongoDB连接状态: ${mongoose.connection.readyState}`);
-    if (mongoose.connection.readyState === 1) {
-      console.log(`💾 [${serverInstanceId}] 开始保存用户到MongoDB:`, userData);
-      const result = await User.findOneAndUpdate(
-        { id: userData.id },
-        {
-          id: userData.id,
-          nickname: userData.nickname,
-          isOnline: true,
-          joinTime: userData.joinTime || new Date(),
-          lastHeartbeat: new Date()
-        },
-        { upsert: true, new: true }
+    console.log(`💾 [${serverInstanceId}] saveUser被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
+    if (pool) {
+      console.log(`💾 [${serverInstanceId}] 开始保存用户到PostgreSQL:`, userData);
+      const result = await pool.query(
+        `INSERT INTO users (id, nickname, is_online, join_time, last_heartbeat) 
+         VALUES ($1, $2, $3, $4, $5) 
+         ON CONFLICT (id) 
+         DO UPDATE SET 
+           nickname = EXCLUDED.nickname,
+           is_online = EXCLUDED.is_online,
+           join_time = EXCLUDED.join_time,
+           last_heartbeat = EXCLUDED.last_heartbeat
+         RETURNING *`,
+        [
+          userData.id,
+          userData.nickname,
+          true,
+          userData.joinTime || new Date(),
+          new Date()
+        ]
       );
-      console.log(`💾 [${serverInstanceId}] 用户状态已保存到MongoDB: ${userData.nickname}`, result);
+      console.log(`💾 [${serverInstanceId}] 用户状态已保存到PostgreSQL: ${userData.nickname}`, result.rows[0]);
     } else {
-      console.log(`💾 [${serverInstanceId}] MongoDB未连接，跳过保存用户状态`);
+      console.log(`💾 [${serverInstanceId}] PostgreSQL未连接，跳过保存用户状态`);
     }
   } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 保存用户状态到MongoDB失败:`, error);
+    console.error(`❌ [${serverInstanceId}] 保存用户状态到PostgreSQL失败:`, error);
   }
 }
 
 async function removeUser(userId) {
   try {
-    if (mongoose.connection.readyState === 1) {
-      await User.findOneAndUpdate(
-        { id: userId },
-        { isOnline: false },
-        { upsert: false }
+    if (pool) {
+      await pool.query(
+        'UPDATE users SET is_online = false, last_heartbeat = CURRENT_TIMESTAMP WHERE id = $1',
+        [userId]
       );
       console.log(`💾 用户状态已更新为离线: ${userId}`);
     }
   } catch (error) {
-    console.error('更新用户状态到MongoDB失败:', error);
+    console.error('更新用户状态到PostgreSQL失败:', error);
   }
 }
 
 async function getAllOnlineUsers() {
   try {
-    console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，MongoDB连接状态: ${mongoose.connection.readyState}`);
-    if (mongoose.connection.readyState === 1) {
-      console.log(`💾 [${serverInstanceId}] 开始从MongoDB查询在线用户...`);
-      const users = await User.find({ isOnline: true }).lean();
-      console.log(`💾 [${serverInstanceId}] 从MongoDB加载在线用户: ${users.length} 人`, users);
+    console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
+    if (pool) {
+      console.log(`💾 [${serverInstanceId}] 开始从PostgreSQL查询在线用户...`);
+      const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
+      const users = result.rows.map(row => ({
+        id: row.id,
+        nickname: row.nickname,
+        isOnline: row.is_online,
+        joinTime: row.join_time,
+        lastHeartbeat: row.last_heartbeat
+      }));
+      console.log(`💾 [${serverInstanceId}] 从PostgreSQL加载在线用户: ${users.length} 人`, users);
       return users;
     } else {
-      console.log(`💾 [${serverInstanceId}] MongoDB未连接，返回空用户列表`);
+      console.log(`💾 [${serverInstanceId}] PostgreSQL未连接，返回空用户列表`);
       return [];
     }
   } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 从MongoDB加载用户失败:`, error);
+    console.error(`❌ [${serverInstanceId}] 从PostgreSQL加载用户失败:`, error);
     return [];
   }
 }
 
 async function updateUserHeartbeat(userId) {
   try {
-    if (mongoose.connection.readyState === 1) {
-      await User.findOneAndUpdate(
-        { id: userId },
-        { lastHeartbeat: new Date() },
-        { upsert: false }
+    if (pool) {
+      await pool.query(
+        'UPDATE users SET last_heartbeat = CURRENT_TIMESTAMP WHERE id = $1',
+        [userId]
       );
     }
   } catch (error) {
@@ -244,17 +274,23 @@ async function updateUserHeartbeat(userId) {
 // 从存储获取消息历史
 async function getMessages() {
   try {
-    // 尝试从 MongoDB 获取
-    if (mongoose.connection.readyState === 1) {
-      const messages = await Message.find()
-        .sort({ timestamp: -1 })
-        .limit(HISTORY_LIMIT)
-        .lean();
-      
-      console.log(`从 MongoDB 获取了 ${messages.length} 条消息`);
-      return messages.reverse(); // 返回时按时间正序排列
+    // 尝试从 PostgreSQL 获取
+    if (pool) {
+      const result = await pool.query(
+        'SELECT * FROM messages ORDER BY timestamp ASC LIMIT $1',
+        [HISTORY_LIMIT]
+      );
+      const messages = result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        nickname: row.nickname,
+        message: row.message,
+        timestamp: row.timestamp
+      }));
+      console.log(`从 PostgreSQL 获取了 ${messages.length} 条消息`);
+      return messages;
     } else {
-      // MongoDB 不可用，使用内存存储
+      // PostgreSQL 不可用，使用内存存储
       const messages = memoryMessages.slice(-HISTORY_LIMIT);
       console.log(`从内存获取了 ${messages.length} 条消息`);
       return messages;
@@ -344,12 +380,51 @@ app.get('/', async (req, res) => {
 });
 
 // 健康检查端点
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    onlineUsers: onlineUsers.size
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const messageCount = mongoose.connection.readyState === 1 
+      ? await Message.countDocuments() 
+      : memoryMessages.length;
+    const storageType = mongoose.connection.readyState === 1 ? 'MongoDB Atlas' : 'Memory';
+    
+    // 检查MongoDB连接状态
+    const mongoStatus = {
+      connected: mongoose.connection.readyState === 1,
+      readyState: mongoose.connection.readyState,
+      host: mongoose.connection.host,
+      port: mongoose.connection.port,
+      name: mongoose.connection.name
+    };
+    
+    res.json({ 
+      status: 'ok',
+      message: 'Chatroom Server is running',
+      onlineUsers: onlineUsers.size,
+      totalMessages: messageCount,
+      storage: storageType,
+      timestamp: new Date().toISOString(),
+      userHeartbeats: userHeartbeats.size,
+      serverUptime: process.uptime(),
+      mongodb: mongoStatus,
+      serverInstanceId: serverInstanceId
+    });
+  } catch (error) {
+    res.json({ 
+      status: 'error',
+      message: 'Chatroom Server is running with errors',
+      onlineUsers: onlineUsers.size,
+      totalMessages: memoryMessages.length,
+      storage: 'Memory (Error)',
+      timestamp: new Date().toISOString(),
+      userHeartbeats: userHeartbeats.size,
+      serverUptime: process.uptime(),
+      mongodb: {
+        connected: false,
+        error: error.message
+      },
+      serverInstanceId: serverInstanceId
+    });
+  }
 });
 
 // 清理所有用户（用于测试）
