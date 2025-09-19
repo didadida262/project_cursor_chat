@@ -25,6 +25,13 @@ if (DATABASE_URL) {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
     console.log('✅ PostgreSQL连接池创建成功');
+    
+    // 立即初始化数据库表
+    pool.on('connect', async () => {
+      console.log('🔄 数据库连接建立，开始初始化表...');
+      await initDatabase();
+    });
+    
   } catch (error) {
     console.error('❌ PostgreSQL连接池创建失败:', error);
     console.log('⚠️ Server will continue without PostgreSQL (using memory storage)');
@@ -36,19 +43,13 @@ if (DATABASE_URL) {
 
 // 初始化数据库表
 async function initDatabase() {
-  if (!pool) return;
+  if (!pool) {
+    console.log('⚠️ 数据库连接池不存在，跳过表初始化');
+    return;
+  }
   
   try {
-    // 创建消息表
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id VARCHAR(255) PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        nickname VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    console.log('🔄 开始初始化数据库表...');
     
     // 创建用户表
     await pool.query(`
@@ -60,10 +61,24 @@ async function initDatabase() {
         last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ users表创建成功');
+    
+    // 创建消息表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        nickname VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ messages表创建成功');
     
     console.log('✅ 数据库表初始化完成');
   } catch (error) {
     console.error('❌ 数据库表初始化失败:', error);
+    console.error('错误详情:', error.message);
   }
 }
 
@@ -72,35 +87,17 @@ setTimeout(initDatabase, 3000);
 
 // 确保表存在的函数
 async function ensureTablesExist() {
-  if (!pool) return;
+  if (!pool) {
+    console.log('⚠️ 数据库连接池不存在，跳过表检查');
+    return;
+  }
   
   try {
-    // 检查users表是否存在
-    const usersTableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'users'
-      );
-    `);
-    
-    // 检查messages表是否存在
-    const messagesTableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'messages'
-      );
-    `);
-    
-    if (!usersTableExists.rows[0].exists || !messagesTableExists.rows[0].exists) {
-      console.log('🔄 检测到表不存在，重新初始化数据库...');
-      await initDatabase();
-    }
+    console.log('🔄 检查数据库表是否存在...');
+    await initDatabase();
+    console.log('✅ 数据库表检查完成');
   } catch (error) {
     console.error('❌ 检查表存在性失败:', error);
-    // 如果检查失败，尝试重新初始化
-    await initDatabase();
   }
 }
 
