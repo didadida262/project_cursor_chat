@@ -204,11 +204,14 @@ async function getAllOnlineUsers() {
       const users = await User.find({ isOnline: true }).lean();
       console.log(`💾 从MongoDB加载在线用户: ${users.length} 人`);
       return users;
+    } else {
+      console.log(`💾 MongoDB未连接，返回空用户列表`);
+      return [];
     }
   } catch (error) {
     console.error('从MongoDB加载用户失败:', error);
+    return [];
   }
-  return [];
 }
 
 async function updateUserHeartbeat(userId) {
@@ -399,7 +402,7 @@ app.get('/api/messages', async (req, res) => {
 });
 
 // 用户加入API
-app.post('/api/join', (req, res) => {
+app.post('/api/join', async (req, res) => {
   const userData = req.body;
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
