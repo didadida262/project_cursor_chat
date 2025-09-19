@@ -180,6 +180,53 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
+// 用户加入API
+app.post('/api/join', (req, res) => {
+  const userData = req.body;
+  const user = {
+    id: userData.id,
+    nickname: userData.nickname,
+    isOnline: true,
+    joinTime: new Date().toISOString()
+  };
+  
+  onlineUsers.set(userData.id, user);
+  console.log(`✅ 用户通过API加入: ${user.nickname}`);
+  
+  res.json({ success: true, user });
+});
+
+// 用户离开API
+app.post('/api/leave', (req, res) => {
+  const { userId } = req.body;
+  const user = onlineUsers.get(userId);
+  
+  if (user) {
+    onlineUsers.delete(userId);
+    console.log(`👋 用户通过API离开: ${user.nickname}`);
+  }
+  
+  res.json({ success: true });
+});
+
+// 发送消息API
+app.post('/api/message', async (req, res) => {
+  const messageData = req.body;
+  const message = {
+    id: uuidv4(),
+    userId: messageData.userId,
+    nickname: messageData.nickname,
+    message: messageData.message,
+    timestamp: new Date().toISOString()
+  };
+  
+  // 保存消息
+  await saveMessage(message);
+  
+  console.log(`📨 通过API收到消息: ${message.nickname}: ${message.message}`);
+  res.json({ success: true, message });
+});
+
 // Socket.io 连接处理
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
