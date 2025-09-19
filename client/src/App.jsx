@@ -13,7 +13,28 @@ function App() {
 
   useEffect(() => {
     // 初始化Socket连接
-    const newSocket = io(process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:3001');
+    const socketUrl = process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:3001';
+    console.log('🔌 尝试连接到Socket服务器:', socketUrl);
+    
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
+    });
+
+    // 连接事件监听
+    newSocket.on('connect', () => {
+      console.log('✅ Socket连接成功:', newSocket.id);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Socket连接失败:', error);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 Socket断开连接:', reason);
+    });
+
     setSocket(newSocket);
 
     return () => {

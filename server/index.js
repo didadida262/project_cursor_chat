@@ -35,15 +35,17 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? true : "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'production' ? "*" : "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 });
 
 // 中间件
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? true : "http://localhost:3000",
+  origin: process.env.NODE_ENV === 'production' ? "*" : "http://localhost:3000",
   credentials: true
 }));
 app.use(express.json());
@@ -141,16 +143,27 @@ app.get('/', async (req, res) => {
       message: 'Chatroom Server is running',
       onlineUsers: onlineUsers.size,
       totalMessages: messageCount,
-      storage: storageType
+      storage: storageType,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.json({ 
       message: 'Chatroom Server is running',
       onlineUsers: onlineUsers.size,
       totalMessages: memoryMessages.length,
-      storage: 'Memory (Error)'
+      storage: 'Memory (Error)',
+      timestamp: new Date().toISOString()
     });
   }
+});
+
+// 健康检查端点
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    onlineUsers: onlineUsers.size
+  });
 });
 
 app.get('/api/users', (req, res) => {
