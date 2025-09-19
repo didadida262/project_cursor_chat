@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC Test</title>
+</head>
+<body>
+    <h1>WebRTC 连接测试</h1>
+    <div>
+        <button id="startBtn">开始获取媒体流</button>
+        <button id="testBtn">测试连接</button>
+    </div>
+    <div>
+        <h3>本地视频:</h3>
+        <video id="localVideo" autoplay muted style="width: 300px; height: 200px; border: 1px solid #ccc;"></video>
+    </div>
+    <div>
+        <h3>远程视频:</h3>
+        <video id="remoteVideo" autoplay style="width: 300px; height: 200px; border: 1px solid #ccc;"></video>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('http://localhost:3001');
+        let localStream = null;
+        let peerConnection = null;
+
+        document.getElementById('startBtn').onclick = async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('localVideo').srcObject = localStream;
+                console.log('本地流获取成功:', localStream.getTracks().length, '个轨道');
+            } catch (error) {
+                console.error('获取媒体流失败:', error);
+            }
+        };
+
+        document.getElementById('testBtn').onclick = () => {
+            console.log('当前用户ID:', socket.id);
+            console.log('本地流状态:', localStream ? '已获取' : '未获取');
+            console.log('PeerConnection状态:', peerConnection ? '已创建' : '未创建');
+        };
+
+        // 监听offer
+        socket.on('offer', async (data) => {
+            console.log('收到offer:', data);
+            const { offer, from } = data;
+            
+            peerConnection = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            // 添加本地流
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            // 处理远程流
+            peerConnection.ontrack = (event) => {
+                console.log('收到远程流:', event.streams[0]);
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+
+            // 处理ICE候选
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('ice-candidate', {
+                        candidate: event.candidate,
+                        to: from,
+                        from: socket.id
+                    });
+                }
+            };
+
+            await peerConnection.setRemoteDescription(offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            socket.emit('answer', {
+                answer: answer,
+                to: from,
+                from: socket.id
+            });
+        });
+
+        // 监听answer
+        socket.on('answer', async (data) => {
+            console.log('收到answer:', data);
+            const { answer, from } = data;
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(answer);
+            }
+        });
+
+        // 监听ICE候选
+        socket.on('ice-candidate', async (data) => {
+            console.log('收到ICE候选:', data);
+            const { candidate, from } = data;
+            if (peerConnection) {
+                await peerConnection.addIceCandidate(candidate);
+            }
+        });
+
+        // 连接成功
+        socket.on('connect', () => {
+            console.log('Socket连接成功:', socket.id);
+        });
+    </script>
+</body>
+</html>

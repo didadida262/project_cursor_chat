@@ -41,6 +41,9 @@ app.get('/api/messages', (req, res) => {
 // Socket.io 连接处理
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+  
+  // 设置customId为socket.id，用于WebRTC信令
+  socket.customId = socket.id;
 
   // 用户加入聊天室
   socket.on('join', (userData) => {
@@ -89,16 +92,51 @@ io.on('connection', (socket) => {
   });
 
   // WebRTC 信令处理
-  socket.on('offer', (offer) => {
-    socket.broadcast.emit('offer', offer);
+  socket.on('offer', (data) => {
+    const { offer, to } = data;
+    console.log(`Offer转发: ${socket.customId} -> ${to}`);
+    const targetSocket = Array.from(io.sockets.sockets.values())
+      .find(s => s.customId === to);
+    if (targetSocket) {
+      targetSocket.emit('offer', { offer, from: socket.customId });
+      console.log(`Offer转发成功: ${socket.customId} -> ${to}`);
+    } else {
+      console.log(`Offer转发失败: 找不到目标用户 ${to}`);
+      console.log('当前在线用户:', Array.from(io.sockets.sockets.values()).map(s => s.customId));
+    }
   });
 
-  socket.on('answer', (answer) => {
-    socket.broadcast.emit('answer', answer);
+  socket.on('answer', (data) => {
+    const { answer, to } = data;
+    console.log(`Answer转发: ${socket.customId} -> ${to}`);
+    const targetSocket = Array.from(io.sockets.sockets.values())
+      .find(s => s.customId === to);
+    if (targetSocket) {
+      targetSocket.emit('answer', { answer, from: socket.customId });
+      console.log(`Answer转发成功: ${socket.customId} -> ${to}`);
+    } else {
+      console.log(`Answer转发失败: 找不到目标用户 ${to}`);
+    }
   });
 
-  socket.on('ice-candidate', (candidate) => {
-    socket.broadcast.emit('ice-candidate', candidate);
+  socket.on('ice-candidate', (data) => {
+    const { candidate, to } = data;
+    console.log(`ICE候选转发: ${socket.customId} -> ${to}`);
+    const targetSocket = Array.from(io.sockets.sockets.values())
+      .find(s => s.customId === to);
+    if (targetSocket) {
+      targetSocket.emit('ice-candidate', { candidate, from: socket.customId });
+      console.log(`ICE候选转发成功: ${socket.customId} -> ${to}`);
+    } else {
+      console.log(`ICE候选转发失败: 找不到目标用户 ${to}`);
+    }
+  });
+
+  // 处理用户流准备就绪事件
+  socket.on('userStreamReady', (data) => {
+    console.log(`User ${data.userId} stream ready`);
+    // 广播给其他用户
+    socket.broadcast.emit('userStreamReady', data);
   });
 
   // 视频通话控制
