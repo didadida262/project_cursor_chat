@@ -8,6 +8,8 @@ class SimpleChatAPI {
     this.isConnected = false;
     this.userId = null;
     this.nickname = null;
+    this.lastUsersUpdate = 0;
+    this.usersUpdateThrottle = 1000; // 1秒内只更新一次用户列表
   }
 
   // 连接聊天室
@@ -87,18 +89,22 @@ class SimpleChatAPI {
           }
         }
 
-        // 获取用户列表
-        const usersResponse = await fetch(`${this.baseUrl}/api/users`);
-        if (usersResponse.ok) {
-          const users = await usersResponse.json();
-          if (this.usersCallback) {
-            this.usersCallback(users);
+        // 获取用户列表（节流）
+        const now = Date.now();
+        if (now - this.lastUsersUpdate > this.usersUpdateThrottle) {
+          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+          if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            if (this.usersCallback) {
+              this.usersCallback(users);
+              this.lastUsersUpdate = now;
+            }
           }
         }
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 1000); // 每1秒轮询一次，减少服务器压力
+    }, 2000); // 每2秒轮询一次，进一步减少服务器压力
   }
 
   // 停止轮询

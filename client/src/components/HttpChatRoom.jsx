@@ -61,6 +61,22 @@ function HttpChatRoom() {
     
     chatAPI.current.onUsers((userList) => {
       setUsers(userList);
+      
+      // 检查当前用户是否还在用户列表中
+      if (userInfo && isConnected) {
+        const currentUserInList = userList.find(u => u.id === userInfo.id);
+        if (!currentUserInList) {
+          console.log('🔄 检测到当前用户不在列表中，尝试重新连接...');
+          // 重新连接
+          chatAPI.current.connect(userInfo).then(success => {
+            if (success) {
+              console.log('✅ 重新连接成功');
+            } else {
+              console.log('❌ 重新连接失败');
+            }
+          });
+        }
+      }
     });
 
     // 页面卸载时自动离开

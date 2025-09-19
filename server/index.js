@@ -62,8 +62,8 @@ const userHeartbeats = new Map();
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 15000; // 15秒无响应视为离线
-const HEARTBEAT_CHECK_INTERVAL = 10000; // 每10秒检查一次
+const HEARTBEAT_TIMEOUT = 30000; // 30秒无响应视为离线
+const HEARTBEAT_CHECK_INTERVAL = 15000; // 每15秒检查一次
 
 // 心跳检测定时器
 setInterval(() => {
@@ -93,6 +93,11 @@ setInterval(() => {
     // 广播更新后的用户列表
     io.emit('users', Array.from(onlineUsers.values()));
     console.log(`📤 已广播清理后的用户列表，当前在线: ${onlineUsers.size} 人`);
+  } else {
+    // 即使没有用户离线，也定期广播当前用户列表，保持同步
+    if (onlineUsers.size > 0) {
+      io.emit('users', Array.from(onlineUsers.values()));
+    }
   }
 }, HEARTBEAT_CHECK_INTERVAL);
 
