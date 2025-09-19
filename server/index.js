@@ -53,8 +53,46 @@ app.use(express.json());
 // 存储在线用户
 const onlineUsers = new Map();
 
+// 用户心跳检测 - 记录用户最后活跃时间
+const userHeartbeats = new Map();
+
 // 内存存储作为备用方案
 const memoryMessages = [];
+
+// 心跳检测配置
+const HEARTBEAT_TIMEOUT = 10000; // 10秒无响应视为离线
+const HEARTBEAT_CHECK_INTERVAL = 5000; // 每5秒检查一次
+
+// 心跳检测定时器
+setInterval(() => {
+  const now = Date.now();
+  const inactiveUsers = [];
+  
+  // 检查所有用户的心跳
+  for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
+    if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+      inactiveUsers.push(userId);
+    }
+  }
+  
+  // 清理离线用户
+  if (inactiveUsers.length > 0) {
+    console.log(`💔 检测到 ${inactiveUsers.length} 个离线用户，正在清理...`);
+    
+    inactiveUsers.forEach(userId => {
+      const user = onlineUsers.get(userId);
+      if (user) {
+        onlineUsers.delete(userId);
+        userHeartbeats.delete(userId);
+        console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId})`);
+      }
+    });
+    
+    // 广播更新后的用户列表
+    io.emit('users', Array.from(onlineUsers.values()));
+    console.log(`📤 已广播清理后的用户列表，当前在线: ${onlineUsers.size} 人`);
+  }
+}, HEARTBEAT_CHECK_INTERVAL);
 
 // 消息存储相关的辅助函数
 const HISTORY_LIMIT = 50;
@@ -213,6 +251,7 @@ app.post('/api/join', (req, res) => {
   };
   
   onlineUsers.set(userData.id, user);
+  userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
   console.log(`✅ 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
   console.log(`👥 当前在线用户: ${onlineUsers.size} 人`);
   
@@ -226,7 +265,20 @@ app.post('/api/leave', (req, res) => {
   
   if (user) {
     onlineUsers.delete(userId);
+    userHeartbeats.delete(userId); // 清理心跳记录
     console.log(`👋 用户通过API离开: ${user.nickname}`);
+  }
+  
+  res.json({ success: true });
+});
+
+// 心跳API
+app.post('/api/heartbeat', (req, res) => {
+  const { userId } = req.body;
+  
+  if (userId && onlineUsers.has(userId)) {
+    userHeartbeats.set(userId, Date.now());
+    console.log(`💓 收到用户心跳: ${userId}`);
   }
   
   res.json({ success: true });
@@ -247,6 +299,12 @@ app.post('/api/message', async (req, res) => {
   await saveMessage(message);
   
   console.log(`📨 通过API收到消息: ${message.nickname}: ${message.message}`);
+  
+  // 更新发送者的心跳时间
+  if (userHeartbeats.has(messageData.userId)) {
+    userHeartbeats.set(messageData.userId, Date.now());
+  }
+  
   res.json({ success: true, message });
 });
 
@@ -269,6 +327,7 @@ io.on('connection', (socket) => {
     };
     
     onlineUsers.set(socket.id, user);
+    userHeartbeats.set(socket.id, Date.now()); // 记录心跳时间
     console.log('👥 在线用户列表更新:', Array.from(onlineUsers.values()));
     
     // 通知其他用户有新用户加入
@@ -381,6 +440,7 @@ io.on('connection', (socket) => {
       
       // 从在线用户列表中移除
       onlineUsers.delete(socket.id);
+      userHeartbeats.delete(socket.id); // 清理心跳记录
       
       // 更新用户列表
       io.emit('users', Array.from(onlineUsers.values()));
