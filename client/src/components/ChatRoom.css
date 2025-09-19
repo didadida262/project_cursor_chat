@@ -34,7 +34,8 @@
   background: rgba(255, 255, 255, 0.03);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  min-width: 280px;
+  min-width: 320px;
+  max-width: 350px;
 }
 
 .sidebar-header {
@@ -51,39 +52,26 @@
   text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
 }
 
-.user-item {
-  padding: 12px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
-  position: relative;
+.users-list {
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100% - 80px);
+  /* 确保不会干扰拖拽 */
+  pointer-events: auto;
 }
 
-.user-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), transparent);
-  transition: width 0.3s ease;
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
 }
 
-.user-item:hover::before {
-  width: 4px;
+.empty-users {
+  margin-top: 40px;
 }
 
-.user-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateX(5px);
-}
-
-.user-item .ant-list-item-meta-title {
-  color: #ffffff !important;
-  font-weight: 500;
-}
-
-.user-item .ant-list-item-meta-description {
+.empty-users .ant-empty-description {
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
@@ -100,6 +88,8 @@
   padding: 20px;
   background: transparent;
   position: relative;
+  /* 确保不会干扰拖拽 */
+  pointer-events: auto;
 }
 
 .messages-container::before {
@@ -185,14 +175,20 @@
   background: rgba(255, 255, 255, 0.03);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
+  /* 确保不会干扰拖拽 */
+  pointer-events: auto;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .user-sidebar {
-    width: 200px !important;
-    min-width: 200px !important;
-    max-width: 200px !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+  }
+  
+  .users-list {
+    padding: 12px;
   }
   
   .message {
@@ -206,17 +202,17 @@
 
 @media (max-width: 480px) {
   .user-sidebar {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
   }
   
   .sidebar-header {
     padding: 12px;
   }
   
-  .user-item {
-    padding: 6px 12px;
+  .users-list {
+    padding: 8px;
   }
   
   .messages-container {

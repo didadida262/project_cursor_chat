@@ -125,6 +125,8 @@ io.on('connection', (socket) => {
       
       console.log(`User ${user.nickname} left the chatroom`);
     }
+    
+    console.log('User disconnected:', socket.id);
   });
 
   // 错误处理

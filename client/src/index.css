@@ -141,6 +141,44 @@ html, body {
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
+/* 修复Empty组件样式 */
+.ant-empty {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.ant-empty-description {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 修复List组件样式 */
+.ant-list-empty-text {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.ant-list-item-meta-title {
+  color: #ffffff !important;
+}
+
+.ant-list-item-meta-description {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 强制所有用户卡片去除圆角和边框 */
+.user-card,
+.user-card.ant-card,
+.user-card .ant-card-body {
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* 强制移除用户卡片的所有边框和轮廓 */
+.user-card *,
+.ant-card * {
+  border: none !important;
+  outline: none !important;
+}
+
 /* 动画效果 */
 @keyframes fadeInUp {
   from {

@@ -13,7 +13,7 @@ import './VideoCall.css';
 
 const { Title, Text } = Typography;
 
-function VideoCall({ onBack }) {
+function VideoCall({ onBack, onStreamUpdate }) {
   const socket = React.useContext(SocketContext);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -72,6 +72,10 @@ function VideoCall({ onBack }) {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
+      // 通知父组件更新视频流
+      if (onStreamUpdate) {
+        onStreamUpdate(stream, 'local');
+      }
       setCallStatus('已准备就绪');
     } catch (error) {
       console.error('获取媒体设备失败:', error);
@@ -95,6 +99,10 @@ function VideoCall({ onBack }) {
       setRemoteStream(remoteStream);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
+      }
+      // 通知父组件更新远程视频流
+      if (onStreamUpdate) {
+        onStreamUpdate(remoteStream, 'remote');
       }
     };
 
@@ -289,40 +297,12 @@ function VideoCall({ onBack }) {
           ) : (
             <>
               <Button 
-                type={isAudioEnabled ? 'default' : 'primary'}
-                icon={isAudioEnabled ? <AudioOutlined /> : <AudioMutedOutlined />}
-                onClick={toggleAudio}
-                size="large"
-              >
-                {isAudioEnabled ? '静音' : '取消静音'}
-              </Button>
-              
-              <Button 
-                type={isVideoEnabled ? 'default' : 'primary'}
-                icon={isVideoEnabled ? <VideoCameraOutlined /> : <VideoCameraAddOutlined />}
-                onClick={toggleVideo}
-                size="large"
-              >
-                {isVideoEnabled ? '关闭视频' : '开启视频'}
-              </Button>
-              
-              <Button 
                 icon={<ShareAltOutlined />}
                 onClick={startScreenShare}
                 disabled={isScreenSharing}
                 size="large"
               >
                 屏幕共享
-              </Button>
-              
-              <Button 
-                type="primary" 
-                danger
-                icon={<PhoneOutlined />}
-                onClick={endCall}
-                size="large"
-              >
-                结束通话
               </Button>
             </>
           )}

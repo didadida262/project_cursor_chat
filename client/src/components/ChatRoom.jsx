@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Input, Button, List, Avatar, Typography, Card, Space, message } from 'antd';
+import { Layout, Input, Button, List, Avatar, Typography, Card, Space, message, Empty } from 'antd';
 import { SendOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { SocketContext } from '../contexts/SocketContext';
+import UserCard from './UserCard';
 import './ChatRoom.css';
 
 const { Sider, Content } = Layout;
 const { TextArea } = Input;
 const { Text, Title } = Typography;
 
-function ChatRoom({ onStartVideo }) {
+function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: parentRemoteStream, onStreamUpdate }) {
   const socket = React.useContext(SocketContext);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
@@ -17,6 +18,11 @@ function ChatRoom({ onStartVideo }) {
   const [nickname, setNickname] = useState('');
   const messagesEndRef = useRef(null);
   const [showNicknameInput, setShowNicknameInput] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isInCall, setIsInCall] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [hasRequestedMedia, setHasRequestedMedia] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,6 +31,15 @@ function ChatRoom({ onStartVideo }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 清理本地流
+  useEffect(() => {
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [localStream]);
 
   useEffect(() => {
     if (!socket) return;
@@ -49,6 +64,7 @@ function ChatRoom({ onStartVideo }) {
       message.info(`${data.nickname} 离开了聊天室`);
     });
 
+
     // 监听连接成功
     socket.on('connect', () => {
       console.log('Connected to server');
@@ -63,7 +79,31 @@ function ChatRoom({ onStartVideo }) {
     };
   }, [socket]);
 
-  const handleJoinChat = () => {
+  // 请求媒体流
+  const requestMediaStream = async () => {
+    try {
+      message.loading('正在获取音视频权限...', 0);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      
+      setLocalStream(stream);
+      if (onStreamUpdate) {
+        onStreamUpdate(stream);
+      }
+      
+      message.destroy();
+      message.success('音视频权限获取成功');
+    } catch (error) {
+      message.destroy();
+      console.error('获取媒体流失败:', error);
+      message.error('获取音视频权限失败，请检查设备权限');
+    }
+  };
+
+  const handleJoinChat = async () => {
     if (!nickname.trim()) {
       message.error('请输入昵称');
       return;
@@ -78,6 +118,12 @@ function ChatRoom({ onStartVideo }) {
     setUserInfo(user);
     setShowNicknameInput(false);
     socket.emit('join', user);
+    
+    // 自动请求音视频权限
+    if (!hasRequestedMedia) {
+      setHasRequestedMedia(true);
+      await requestMediaStream();
+    }
   };
 
   const handleSendMessage = () => {
@@ -100,6 +146,41 @@ function ChatRoom({ onStartVideo }) {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleToggleAudio = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isAudioEnabled;
+      }
+    }
+    setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  const handleToggleVideo = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !isVideoEnabled;
+      }
+    }
+    setIsVideoEnabled(!isVideoEnabled);
+  };
+
+  const handleEndCall = () => {
+    console.log('结束通话');
+    setIsInCall(false);
+    setIsAudioEnabled(true);
+    setIsVideoEnabled(true);
+    // 这里可以添加结束通话的逻辑
+  };
+
+
+
+  const handleStartVideoCall = () => {
+    setIsInCall(true);
+    onStartVideo();
   };
 
   if (showNicknameInput) {
@@ -131,22 +212,37 @@ function ChatRoom({ onStartVideo }) {
 
   return (
     <Layout className="chat-room">
-      <Sider width={250} className="user-sidebar">
+      <Sider width="70%" className="user-sidebar">
         <div className="sidebar-header">
           <Title level={4}>在线用户 ({users.length})</Title>
         </div>
-        <List
-          dataSource={users}
-          renderItem={(user) => (
-            <List.Item className="user-item">
-              <List.Item.Meta
-                avatar={<Avatar icon={<UserOutlined />} />}
-                title={user.nickname}
-                description={user.isOnline ? '在线' : '离线'}
-              />
-            </List.Item>
+        <div className="users-list">
+          {users.length > 0 ? (
+            <div className="users-grid">
+              {users.map((user) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  isCurrentUser={user.id === userInfo?.id}
+                  onToggleAudio={handleToggleAudio}
+                  onToggleVideo={handleToggleVideo}
+                  onEndCall={handleEndCall}
+                  isAudioEnabled={isAudioEnabled}
+                  isVideoEnabled={isVideoEnabled}
+                  isInCall={isInCall}
+                  localStream={user.id === userInfo?.id ? (localStream || parentLocalStream) : null}
+                  remoteStream={user.id !== userInfo?.id ? parentRemoteStream : null}
+                />
+              ))}
+            </div>
+          ) : (
+            <Empty 
+              description="暂无在线用户"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              className="empty-users"
+            />
           )}
-        />
+        </div>
       </Sider>
       
       <Layout>
@@ -191,13 +287,6 @@ function ChatRoom({ onStartVideo }) {
                 disabled={!currentMessage.trim()}
               >
                 发送
-              </Button>
-              <Button 
-                icon={<VideoCameraOutlined />}
-                onClick={onStartVideo}
-                title="开始视频通话"
-              >
-                视频
               </Button>
             </Space.Compact>
           </div>

@@ -14,6 +14,8 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isVideoCall, setIsVideoCall] = useState(false);
   const [currentTheme, setCurrentTheme] = useState([theme.defaultAlgorithm]);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
 
   useEffect(() => {
     // 初始化Socket连接
@@ -28,6 +30,10 @@ function App() {
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     setCurrentTheme(isDarkMode ? [theme.defaultAlgorithm] : [theme.darkAlgorithm]);
+  };
+
+  const handleStreamUpdate = (stream) => {
+    setLocalStream(stream);
   };
 
   if (!socket) {
@@ -73,10 +79,18 @@ function App() {
           </Header>
           <Content className="app-content">
             {isVideoCall ? (
-              <VideoCall onBack={() => setIsVideoCall(false)} />
-            ) : (
-              <ChatRoom onStartVideo={() => setIsVideoCall(true)} />
-            )}
+              <VideoCall 
+                onBack={() => setIsVideoCall(false)} 
+                onStreamUpdate={handleStreamUpdate}
+              />
+                    ) : (
+                      <ChatRoom 
+                        onStartVideo={() => setIsVideoCall(true)} 
+                        localStream={localStream}
+                        remoteStream={remoteStream}
+                        onStreamUpdate={handleStreamUpdate}
+                      />
+                    )}
           </Content>
         </Layout>
       </SocketContext.Provider>
