@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Input, Button, List, Avatar, Typography, Card, Space, message, Empty } from 'antd';
+import { Layout, Input, Button, List, Avatar, Typography, Card, Space, Empty, App } from 'antd';
 import { SendOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { SocketContext } from '../contexts/SocketContext';
-import UserCard from './UserCard';
+import CurrentUserCard from './CurrentUserCard';
+import OtherUserCard from './OtherUserCard';
 import mediaCoordinator from '../utils/MediaCoordinator';
 import './ChatRoom.css';
 
@@ -12,6 +13,7 @@ const { Text, Title } = Typography;
 
 function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: parentRemoteStream, onStreamUpdate }) {
   const socket = React.useContext(SocketContext);
+  const { message } = App.useApp();
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -315,19 +317,25 @@ function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: 
           {users.length > 0 ? (
             <div className="users-grid">
               {users.map((user) => (
-                <UserCard
-                  key={user.id}
-                  user={user}
-                  isCurrentUser={user.id === userInfo?.id}
-                  onToggleAudio={handleToggleAudio}
-                  onToggleVideo={handleToggleVideo}
-                  onEndCall={handleEndCall}
-                  isAudioEnabled={isAudioEnabled}
-                  isVideoEnabled={isVideoEnabled}
-                  isInCall={isInCall}
-                  localStream={user.id === userInfo?.id ? (localStream || parentLocalStream) : null}
-                  remoteStream={user.id !== userInfo?.id ? parentRemoteStream : null}
-                />
+                user.id === userInfo?.id ? (
+                  <CurrentUserCard
+                    key={user.id}
+                    user={user}
+                    onToggleAudio={handleToggleAudio}
+                    onToggleVideo={handleToggleVideo}
+                    isAudioEnabled={isAudioEnabled}
+                    isVideoEnabled={isVideoEnabled}
+                    localStream={localStream || parentLocalStream}
+                  />
+                ) : (
+                  <OtherUserCard
+                    key={user.id}
+                    user={user}
+                    isAudioEnabled={user.isAudioEnabled || true}
+                    isVideoEnabled={user.isVideoEnabled || true}
+                    remoteStream={parentRemoteStream}
+                  />
+                )
               ))}
             </div>
           ) : (

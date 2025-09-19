@@ -114,6 +114,13 @@ html, body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
 }
 
+/* 强制移除当前用户卡片的圆角 */
+.current-user-card,
+.current-user-card .ant-card,
+.current-user-card .ant-card-body {
+  border-radius: 0px !important;
+}
+
 .ant-card-head {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   background: rgba(255, 255, 255, 0.05) !important;
