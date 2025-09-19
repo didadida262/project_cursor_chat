@@ -173,11 +173,15 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     };
     
-    // 保存消息到 KV 存储
-    await saveMessage(message);
-    
-    // 广播消息给所有用户
+    // 先广播消息给所有用户
     io.emit('message', message);
+    
+    // 然后尝试保存到数据库（不阻塞消息发送）
+    try {
+      await saveMessage(message);
+    } catch (error) {
+      console.error('保存消息失败，但消息已发送:', error);
+    }
     
     console.log(`Message from ${message.nickname}: ${message.message}`);
   });

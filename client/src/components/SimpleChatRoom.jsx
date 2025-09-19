@@ -34,10 +34,16 @@ function SimpleChatRoom() {
   useEffect(() => {
     if (!socket) return;
 
-    // 监听消息
+    // 监听新消息
     socket.on('message', (data) => {
-      console.log('收到消息:', data);
+      console.log('收到新消息:', data);
       setMessages(prev => [...prev, data]);
+    });
+
+    // 监听历史消息
+    socket.on('messages', (messageList) => {
+      console.log('收到历史消息:', messageList);
+      setMessages(messageList);
     });
 
     // 监听用户列表更新
@@ -60,6 +66,7 @@ function SimpleChatRoom() {
 
     return () => {
       socket.off('message');
+      socket.off('messages');
       socket.off('users');
       socket.off('userJoined');
       socket.off('userLeft');
@@ -70,15 +77,14 @@ function SimpleChatRoom() {
   const sendMessage = () => {
     if (currentMessage.trim() && userInfo) {
       const messageData = {
-        id: Date.now(),
         userId: userInfo.id,
         nickname: userInfo.nickname,
-        message: currentMessage.trim(),
-        timestamp: new Date().toISOString()
+        message: currentMessage.trim()
       };
 
       socket.emit('message', messageData);
       setCurrentMessage('');
+      console.log('发送消息:', messageData);
     }
   };
 
