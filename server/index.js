@@ -11,9 +11,17 @@ const server = createServer(app);
 // MongoDB 连接
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chatroom';
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// 尝试连接 MongoDB，但不阻塞服务器启动
+if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017/chatroom') {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ MongoDB connected successfully'))
+    .catch(err => {
+      console.error('❌ MongoDB connection error:', err);
+      console.log('⚠️ Server will continue without MongoDB (using memory storage)');
+    });
+} else {
+  console.log('⚠️ No MongoDB URI provided, using memory storage');
+}
 
 // 消息模型
 const messageSchema = new mongoose.Schema({
@@ -43,71 +51,104 @@ app.use(express.json());
 // 存储在线用户
 const onlineUsers = new Map();
 
+// 内存存储作为备用方案
+const memoryMessages = [];
+
 // 消息存储相关的辅助函数
 const HISTORY_LIMIT = 50;
 const MAX_MESSAGES = 1000;
 
-// 从 MongoDB 获取消息历史
+// 从存储获取消息历史
 async function getMessages() {
   try {
-    const messages = await Message.find()
-      .sort({ timestamp: -1 })
-      .limit(HISTORY_LIMIT)
-      .lean();
-    return messages.reverse();
+    // 尝试从 MongoDB 获取
+    if (mongoose.connection.readyState === 1) {
+      const messages = await Message.find()
+        .sort({ timestamp: -1 })
+        .limit(HISTORY_LIMIT)
+        .lean();
+      return messages.reverse();
+    } else {
+      // 使用内存存储
+      console.log('Using memory storage for messages');
+      return memoryMessages.slice(-HISTORY_LIMIT);
+    }
   } catch (error) {
-    console.error('Error getting messages from MongoDB:', error);
-    return [];
+    console.error('Error getting messages:', error);
+    // 降级到内存存储
+    return memoryMessages.slice(-HISTORY_LIMIT);
   }
 }
 
-// 存储新消息到 MongoDB
+// 存储新消息
 async function saveMessage(messageData) {
   try {
-    const message = new Message({
-      id: messageData.id,
-      userId: messageData.userId,
-      nickname: messageData.nickname,
-      message: messageData.message,
-      timestamp: new Date(messageData.timestamp)
-    });
-    
-    await message.save();
-    
-    // 清理旧消息，保持数据库大小合理
-    const messageCount = await Message.countDocuments();
-    if (messageCount > MAX_MESSAGES) {
-      const oldestMessages = await Message.find()
-        .sort({ timestamp: 1 })
-        .limit(messageCount - MAX_MESSAGES)
-        .select('_id');
-      
-      const idsToDelete = oldestMessages.map(msg => msg._id);
-      await Message.deleteMany({ _id: { $in: idsToDelete } });
+    // 先保存到内存存储
+    memoryMessages.push(messageData);
+    if (memoryMessages.length > MAX_MESSAGES) {
+      memoryMessages.splice(0, memoryMessages.length - MAX_MESSAGES);
     }
     
-    console.log(`Message saved to MongoDB: ${messageData.nickname}: ${messageData.message}`);
+    // 尝试保存到 MongoDB
+    if (mongoose.connection.readyState === 1) {
+      const message = new Message({
+        id: messageData.id,
+        userId: messageData.userId,
+        nickname: messageData.nickname,
+        message: messageData.message,
+        timestamp: new Date(messageData.timestamp)
+      });
+      
+      await message.save();
+      
+      // 清理旧消息，保持数据库大小合理
+      const messageCount = await Message.countDocuments();
+      if (messageCount > MAX_MESSAGES) {
+        const oldestMessages = await Message.find()
+          .sort({ timestamp: 1 })
+          .limit(messageCount - MAX_MESSAGES)
+          .select('_id');
+        
+        const idsToDelete = oldestMessages.map(msg => msg._id);
+        await Message.deleteMany({ _id: { $in: idsToDelete } });
+      }
+      
+      console.log(`Message saved to MongoDB: ${messageData.nickname}: ${messageData.message}`);
+    } else {
+      console.log(`Message saved to memory: ${messageData.nickname}: ${messageData.message}`);
+    }
   } catch (error) {
-    console.error('Error saving message to MongoDB:', error);
+    console.error('Error saving message:', error);
+    console.log(`Message saved to memory (fallback): ${messageData.nickname}: ${messageData.message}`);
   }
 }
 
 // 路由
 app.get('/', async (req, res) => {
   try {
-    const messageCount = await Message.countDocuments();
+    let messageCount = 0;
+    let storageType = 'Memory';
+    
+    if (mongoose.connection.readyState === 1) {
+      messageCount = await Message.countDocuments();
+      storageType = 'MongoDB Atlas';
+    } else {
+      messageCount = memoryMessages.length;
+      storageType = 'Memory (MongoDB unavailable)';
+    }
+    
     res.json({ 
       message: 'Chatroom Server is running',
       onlineUsers: onlineUsers.size,
       totalMessages: messageCount,
-      storage: 'MongoDB Atlas'
+      storage: storageType
     });
   } catch (error) {
     res.json({ 
       message: 'Chatroom Server is running',
       onlineUsers: onlineUsers.size,
-      totalMessages: 0,
-      storage: 'Memory (MongoDB unavailable)'
+      totalMessages: memoryMessages.length,
+      storage: 'Memory (Error)'
     });
   }
 });
