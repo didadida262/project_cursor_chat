@@ -98,14 +98,14 @@ const userHeartbeats = new Map();
 const serverInstanceId = `server_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 console.log(`🆔 服务器实例启动: ${serverInstanceId}`);
 
-// 服务器启动时从MongoDB恢复用户状态
+// 服务器启动时从PostgreSQL恢复用户状态
 async function restoreUsersFromDB() {
   try {
-    if (mongoose.connection.readyState === 1) {
+    if (pool) {
       const dbUsers = await getAllOnlineUsers();
-      console.log(`🔄 [${serverInstanceId}] 从MongoDB恢复用户状态: ${dbUsers.length} 人`);
+      console.log(`🔄 [${serverInstanceId}] 从PostgreSQL恢复用户状态: ${dbUsers.length} 人`);
       
-      // 将MongoDB中的用户恢复到内存
+      // 将PostgreSQL中的用户恢复到内存
       for (const user of dbUsers) {
         onlineUsers.set(user.id, user);
         userHeartbeats.set(user.id, user.lastHeartbeat || Date.now());
@@ -113,14 +113,14 @@ async function restoreUsersFromDB() {
       
       console.log(`✅ [${serverInstanceId}] 用户状态恢复完成，内存中有 ${onlineUsers.size} 个用户`);
     } else {
-      console.log(`⚠️ [${serverInstanceId}] MongoDB未连接，跳过用户状态恢复`);
+      console.log(`⚠️ [${serverInstanceId}] PostgreSQL未连接，跳过用户状态恢复`);
     }
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 恢复用户状态失败:`, error);
   }
 }
 
-// 延迟恢复用户状态，等待MongoDB连接
+// 延迟恢复用户状态，等待PostgreSQL连接
 setTimeout(restoreUsersFromDB, 2000);
 
 // 用户列表广播防抖
@@ -313,33 +313,33 @@ async function saveMessage(messageData) {
       memoryMessages.splice(0, memoryMessages.length - MAX_MESSAGES);
     }
     
-    // 尝试保存到 MongoDB
-    if (mongoose.connection.readyState === 1) {
-      const message = new Message({
-        id: messageData.id,
-        userId: messageData.userId,
-        nickname: messageData.nickname,
-        message: messageData.message,
-        timestamp: new Date(messageData.timestamp)
-      });
-      
-      await message.save();
+    // 尝试保存到 PostgreSQL
+    if (pool) {
+      await pool.query(
+        'INSERT INTO messages (id, user_id, nickname, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        [
+          messageData.id,
+          messageData.userId,
+          messageData.nickname,
+          messageData.message,
+          new Date(messageData.timestamp)
+        ]
+      );
       
       // 清理旧消息，保持数据库大小合理
-      const messageCount = await Message.countDocuments();
+      const result = await pool.query('SELECT COUNT(*) FROM messages');
+      const messageCount = parseInt(result.rows[0].count);
       if (messageCount > MAX_MESSAGES) {
-        const oldestMessages = await Message.find()
-          .sort({ timestamp: 1 })
-          .limit(messageCount - MAX_MESSAGES)
-          .select('_id');
-        
-        const idsToDelete = oldestMessages.map(msg => msg._id);
-        await Message.deleteMany({ _id: { $in: idsToDelete } });
+        const deleteCount = messageCount - MAX_MESSAGES;
+        await pool.query(
+          'DELETE FROM messages WHERE id IN (SELECT id FROM messages ORDER BY timestamp ASC LIMIT $1)',
+          [deleteCount]
+        );
       }
       
-      console.log(`Message saved to MongoDB: ${messageData.nickname}: ${messageData.message}`);
+      console.log(`Message saved to PostgreSQL: ${messageData.nickname}: ${messageData.message}`);
     } else {
-      console.log(`Message saved to memory: ${messageData.nickname}: ${messageData.message}`);
+      console.log(`PostgreSQL 不可用，消息仅保存到内存: ${messageData.nickname}: ${messageData.message}`);
     }
   } catch (error) {
     console.error('Error saving message:', error);
@@ -353,12 +353,13 @@ app.get('/', async (req, res) => {
     let messageCount = 0;
     let storageType = 'Memory';
     
-    if (mongoose.connection.readyState === 1) {
-      messageCount = await Message.countDocuments();
-      storageType = 'MongoDB Atlas';
+    if (pool) {
+      const result = await pool.query('SELECT COUNT(*) FROM messages');
+      messageCount = parseInt(result.rows[0].count);
+      storageType = 'PostgreSQL (Neon)';
     } else {
       messageCount = memoryMessages.length;
-      storageType = 'Memory (MongoDB unavailable)';
+      storageType = 'Memory (PostgreSQL unavailable)';
     }
     
     res.json({ 
@@ -382,18 +383,17 @@ app.get('/', async (req, res) => {
 // 健康检查端点
 app.get('/health', async (req, res) => {
   try {
-    const messageCount = mongoose.connection.readyState === 1 
-      ? await Message.countDocuments() 
+    const messageCount = pool 
+      ? (await pool.query('SELECT COUNT(*) FROM messages')).rows[0].count 
       : memoryMessages.length;
-    const storageType = mongoose.connection.readyState === 1 ? 'MongoDB Atlas' : 'Memory';
+    const storageType = pool ? 'PostgreSQL (Neon)' : 'Memory';
     
-    // 检查MongoDB连接状态
-    const mongoStatus = {
-      connected: mongoose.connection.readyState === 1,
-      readyState: mongoose.connection.readyState,
-      host: mongoose.connection.host,
-      port: mongoose.connection.port,
-      name: mongoose.connection.name
+    // 检查PostgreSQL连接状态
+    const dbStatus = {
+      connected: pool !== null,
+      type: 'PostgreSQL (Neon)',
+      host: pool ? 'neon.tech' : null,
+      port: pool ? 5432 : null
     };
     
     res.json({ 
@@ -405,7 +405,7 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       userHeartbeats: userHeartbeats.size,
       serverUptime: process.uptime(),
-      mongodb: mongoStatus,
+      database: dbStatus,
       serverInstanceId: serverInstanceId
     });
   } catch (error) {
@@ -418,7 +418,7 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       userHeartbeats: userHeartbeats.size,
       serverUptime: process.uptime(),
-      mongodb: {
+      database: {
         connected: false,
         error: error.message
       },
@@ -442,25 +442,25 @@ app.post('/api/clear-users', (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    // 优先从MongoDB获取用户列表
+    // 优先从PostgreSQL获取用户列表
     const dbUsers = await getAllOnlineUsers();
     
     // 同时检查内存中的用户列表（用于调试）
     const memoryUsers = Array.from(onlineUsers.values());
     
     console.log(`📊 [${serverInstanceId}] API请求用户列表`);
-    console.log(`📊 [${serverInstanceId}] MongoDB在线用户: ${dbUsers.length} 人`);
+    console.log(`📊 [${serverInstanceId}] PostgreSQL在线用户: ${dbUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
     
-    // 如果MongoDB有数据，使用MongoDB的数据
+    // 如果PostgreSQL有数据，使用PostgreSQL的数据
     if (dbUsers.length > 0) {
-      console.log(`✅ [${serverInstanceId}] 使用MongoDB用户数据`);
+      console.log(`✅ [${serverInstanceId}] 使用PostgreSQL用户数据`);
       res.json(dbUsers);
     } 
-    // 如果MongoDB没有数据，但有内存数据，同步到MongoDB
+    // 如果PostgreSQL没有数据，但有内存数据，同步到PostgreSQL
     else if (memoryUsers.length > 0) {
-      console.log(`🔄 [${serverInstanceId}] MongoDB无数据，同步内存数据到MongoDB`);
+      console.log(`🔄 [${serverInstanceId}] PostgreSQL无数据，同步内存数据到PostgreSQL`);
       for (const user of memoryUsers) {
         await saveUser(user);
       }
@@ -495,7 +495,7 @@ app.post('/api/join', async (req, res) => {
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
-  console.log(`📊 [${serverInstanceId}] MongoDB连接状态: ${mongoose.connection.readyState}`);
+  console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   
   // 检查是否已存在相同昵称的用户
   const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
@@ -515,8 +515,8 @@ app.post('/api/join', async (req, res) => {
   onlineUsers.set(userData.id, user);
   userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
   
-  // 同时保存到MongoDB
-  console.log(`💾 [${serverInstanceId}] 开始保存用户到MongoDB:`, user);
+  // 同时保存到PostgreSQL
+  console.log(`💾 [${serverInstanceId}] 开始保存用户到PostgreSQL:`, user);
   await saveUser(user);
   console.log(`💾 [${serverInstanceId}] 用户保存完成`);
   
@@ -537,7 +537,7 @@ app.post('/api/leave', async (req, res) => {
     onlineUsers.delete(userId);
     userHeartbeats.delete(userId); // 清理心跳记录
     
-    // 同时更新MongoDB状态
+    // 同时更新PostgreSQL状态
     await removeUser(userId);
     
     console.log(`👋 [${serverInstanceId}] 用户通过API离开: ${user.nickname}`);
@@ -553,7 +553,7 @@ app.post('/api/heartbeat', async (req, res) => {
   if (userId && onlineUsers.has(userId)) {
     userHeartbeats.set(userId, Date.now());
     
-    // 同时更新MongoDB心跳时间
+    // 同时更新PostgreSQL心跳时间
     await updateUserHeartbeat(userId);
     
     console.log(`💓 [${serverInstanceId}] 收到用户心跳: ${userId}`);
