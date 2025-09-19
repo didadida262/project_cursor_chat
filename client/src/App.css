@@ -1,0 +1,222 @@
+.app-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  color: #ffffff;
+}
+
+.app-header {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.app-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.header-content h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(45deg, #ffffff, #e0e6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+.header-controls {
+  display: flex;
+  gap: 16px;
+}
+
+.theme-toggle,
+.video-toggle {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle::before,
+.video-toggle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.theme-toggle:hover::before,
+.video-toggle:hover::before {
+  left: 100%;
+}
+
+.theme-toggle:hover,
+.video-toggle:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.theme-toggle:active,
+.video-toggle:active {
+  transform: translateY(0);
+  transition: transform 0.1s;
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header-content h1 {
+    font-size: 22px;
+  }
+  
+  .theme-toggle,
+  .video-toggle {
+    padding: 10px 14px;
+    font-size: 16px;
+  }
+  
+  .header-controls {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content h1 {
+    font-size: 18px;
+  }
+  
+  .theme-toggle,
+  .video-toggle {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .header-controls {
+    gap: 8px;
+  }
+}
+
+/* 加载页面样式 */
+.loading-container {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  position: relative;
+}
+
+.loading-content {
+  text-align: center;
+  z-index: 10;
+  position: relative;
+}
+
+.loading-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 30px;
+}
+
+.spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+}
+
+.spinner-ring:nth-child(2) {
+  width: 70px;
+  height: 70px;
+  top: 5px;
+  left: 5px;
+  border-top-color: #764ba2;
+  animation-duration: 1.5s;
+  animation-direction: reverse;
+}
+
+.spinner-ring:nth-child(3) {
+  width: 60px;
+  height: 60px;
+  top: 10px;
+  left: 10px;
+  border-top-color: #f093fb;
+  animation-duration: 1s;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-content h2 {
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  background: linear-gradient(45deg, #ffffff, #e0e6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+.loading-content p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 0;
+}
