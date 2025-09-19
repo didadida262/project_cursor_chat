@@ -66,10 +66,14 @@ function UserCard({
   useEffect(() => {
     if (videoRef.current && isCurrentUser && localStream) {
       videoRef.current.srcObject = localStream;
+      // 强制刷新视频播放
+      if (isVideoEnabled) {
+        videoRef.current.load();
+      }
     } else if (videoRef.current && !isCurrentUser && remoteStream) {
       videoRef.current.srcObject = remoteStream;
     }
-  }, [localStream, remoteStream, isCurrentUser]);
+  }, [localStream, remoteStream, isCurrentUser, isVideoEnabled]);
 
   // 简单的拖拽处理函数
   const handleMouseDown = useCallback((e) => {
@@ -315,8 +319,8 @@ function UserCard({
     zIndex: isCurrentUser ? (isDragging ? 99999 : 1000) : 1,
     cursor: isCurrentUser ? (isDragging ? 'grabbing' : 'grab') : 'default',
     userSelect: 'none',
-    width: '280px', // 正方形卡片，整体调小一圈
-    height: '280px', // 正方形卡片，整体调小一圈
+    width: '280px', // 正方形卡片
+    height: '280px', // 正方形卡片：220px(视频区域) + 60px(控制区域)
     // 确保拖拽时在最上层
     pointerEvents: isDragging ? 'auto' : 'auto',
     // 强制覆盖所有圆角和边框
@@ -351,6 +355,9 @@ function UserCard({
             muted={isCurrentUser}
             playsInline
             className="user-video"
+            onLoadStart={() => console.log('视频开始加载')}
+            onCanPlay={() => console.log('视频可以播放')}
+            onError={(e) => console.log('视频错误:', e)}
           />
         ) : (
           <div className="video-placeholder">

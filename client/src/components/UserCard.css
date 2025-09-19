@@ -80,7 +80,7 @@
 /* 拖拽时的样式优化 */
 .user-card.dragging {
   transition: transform 0.1s ease-out, box-shadow 0.1s ease-out !important;
-  transform: translateZ(0) scale(1.02);
+  transform: translateZ(0);
   box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4) !important;
   z-index: 99999 !important;
   cursor: grabbing !important;
@@ -99,10 +99,10 @@
   pointer-events: auto !important;
 }
 
-/* 视频区域 - 占据90% */
+/* 视频区域 - 占据大部分高度 */
 .video-container {
   position: relative;
-  height: 252px; /* 90% of 280px (正方形卡片) */
+  height: 220px; /* 调整高度，让卡片变成正方形 */
   background: #2a2a2a; /* 与图片背景色一致 */
   border-radius: 0;
   overflow: hidden;
@@ -114,7 +114,7 @@
 .user-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* 铺满整个容器 */
   transform: scaleX(-1); /* 镜像翻转 */
 }
 
@@ -124,9 +124,10 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #2a2a2a; /* 与视频区域背景色一致 */
+  border: none;
   position: relative;
   overflow: hidden;
 }
@@ -215,13 +216,13 @@
   border-radius: 50%;
 }
 
-/* 控制区域 - 占据10% */
+/* 控制区域 - 固定高度，保证美观 */
 .controls-container {
-  height: 28px; /* 10% of 280px (减少一半) */
+  height: 60px; /* 减小高度 */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 20px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0;
 }
@@ -291,7 +292,6 @@
 
 .pure-icon-btn.enabled:hover {
   background: rgba(82, 196, 26, 0.1);
-  transform: scale(1.1);
 }
 
 .pure-icon-btn.disabled {
@@ -300,7 +300,6 @@
 
 .pure-icon-btn.disabled:hover {
   background: rgba(255, 77, 79, 0.1);
-  transform: scale(1.1);
 }
 
 .pure-icon-btn.call-btn {
@@ -309,7 +308,6 @@
 
 .pure-icon-btn.call-btn:hover {
   background: rgba(24, 144, 255, 0.1);
-  transform: scale(1.1);
 }
 
 .pure-icon-btn.screen-share-btn {
@@ -318,7 +316,6 @@
 
 .pure-icon-btn.screen-share-btn:hover {
   background: rgba(114, 46, 209, 0.1);
-  transform: scale(1.1);
 }
 
 /* 其他用户卡片样式 */
@@ -335,16 +332,16 @@
 /* 响应式设计 */
 @media (max-width: 768px) {
   .user-card {
-    width: 240px !important; /* 保持正方形 */
+    width: 240px !important;
     height: 240px !important; /* 保持正方形 */
   }
   
   .video-container {
-    height: 216px; /* 90% of 240px */
+    height: 180px; /* 调整视频区域高度 */
   }
   
   .controls-container {
-    height: 24px; /* 10% of 240px */
+    height: 60px; /* 减小控制区域高度 */
   }
   
   .pure-icon-btn {
@@ -361,11 +358,11 @@
   }
   
   .video-container {
-    height: 162px; /* 90% of 180px */
+    height: 120px; /* 调整视频区域高度 */
   }
   
   .controls-container {
-    height: 18px; /* 10% of 180px */
+    height: 60px; /* 减小控制区域高度 */
   }
   
   .pure-icon-btn {

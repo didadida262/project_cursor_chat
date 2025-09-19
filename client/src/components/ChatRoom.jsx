@@ -80,10 +80,27 @@ function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: 
   }, [socket]);
 
   // 请求媒体流
-  const requestMediaStream = async () => {
+  const requestMediaStream = async (type = 'both') => {
     try {
-      message.loading('正在获取音视频权限...', 0);
+      let loadingText = '正在获取音视频权限...';
+      let successText = '音视频权限获取成功';
       
+      if (type === 'audio') {
+        loadingText = '正在获取音频权限...';
+        successText = '音频权限获取成功';
+      } else if (type === 'video') {
+        loadingText = '正在获取视频权限...';
+        successText = '视频权限获取成功';
+      }
+      
+      message.loading(loadingText, 0);
+      
+      // 停止旧的流（如果存在）
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      
+      // 获取新的完整媒体流
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true
@@ -95,11 +112,105 @@ function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: 
       }
       
       message.destroy();
-      message.success('音视频权限获取成功');
+      message.success(successText);
     } catch (error) {
       message.destroy();
       console.error('获取媒体流失败:', error);
       message.error('获取音视频权限失败，请检查设备权限');
+    }
+  };
+
+  // 请求音频流
+  const requestAudioStream = async () => {
+    try {
+      message.loading('正在获取音频权限...', 0);
+      
+      // 获取音频流
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+      
+      // 如果有现有流，创建新流并添加所有轨道
+      if (localStream) {
+        const newStream = new MediaStream();
+        
+        // 添加现有的视频轨道
+        localStream.getVideoTracks().forEach(track => {
+          if (track.readyState !== 'ended') {
+            newStream.addTrack(track);
+          }
+        });
+        
+        // 添加新的音频轨道
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+          newStream.addTrack(audioTrack);
+        }
+        
+        setLocalStream(newStream);
+        if (onStreamUpdate) {
+          onStreamUpdate(newStream);
+        }
+      } else {
+        setLocalStream(stream);
+        if (onStreamUpdate) {
+          onStreamUpdate(stream);
+        }
+      }
+      
+      message.destroy();
+      message.success('音频权限获取成功');
+    } catch (error) {
+      message.destroy();
+      console.error('获取音频流失败:', error);
+      message.error('获取音频权限失败，请检查设备权限');
+    }
+  };
+
+  // 请求视频流
+  const requestVideoStream = async () => {
+    try {
+      message.loading('正在获取视频权限...', 0);
+      
+      // 获取视频流
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
+      
+      // 如果有现有流，创建新流并添加所有轨道
+      if (localStream) {
+        const newStream = new MediaStream();
+        
+        // 添加现有的音频轨道
+        localStream.getAudioTracks().forEach(track => {
+          if (track.readyState !== 'ended') {
+            newStream.addTrack(track);
+          }
+        });
+        
+        // 添加新的视频轨道
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          newStream.addTrack(videoTrack);
+        }
+        
+        setLocalStream(newStream);
+        if (onStreamUpdate) {
+          onStreamUpdate(newStream);
+        }
+      } else {
+        setLocalStream(stream);
+        if (onStreamUpdate) {
+          onStreamUpdate(stream);
+        }
+      }
+      
+      message.destroy();
+      message.success('视频权限获取成功');
+    } catch (error) {
+      message.destroy();
+      console.error('获取视频流失败:', error);
+      message.error('获取视频权限失败，请检查设备权限');
     }
   };
 
@@ -153,19 +264,23 @@ function ChatRoom({ onStartVideo, localStream: parentLocalStream, remoteStream: 
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !isAudioEnabled;
+        setIsAudioEnabled(!isAudioEnabled);
+        console.log('音频状态切换:', !isAudioEnabled ? '开启' : '关闭');
       }
     }
-    setIsAudioEnabled(!isAudioEnabled);
   };
 
   const handleToggleVideo = () => {
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !isVideoEnabled;
+        const newVideoState = !isVideoEnabled;
+        videoTrack.enabled = newVideoState;
+        setIsVideoEnabled(newVideoState);
+        console.log('视频状态切换:', newVideoState ? '开启' : '关闭');
+        console.log('视频轨道状态:', videoTrack.readyState, 'enabled:', videoTrack.enabled);
       }
     }
-    setIsVideoEnabled(!isVideoEnabled);
   };
 
   const handleEndCall = () => {
