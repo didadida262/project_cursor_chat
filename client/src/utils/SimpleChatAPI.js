@@ -102,10 +102,13 @@ class SimpleChatAPI {
           const usersResponse = await fetch(`${this.baseUrl}/api/users`);
           if (usersResponse.ok) {
             const users = await usersResponse.json();
+            console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
             if (this.usersCallback) {
               this.usersCallback(users);
               this.lastUsersUpdate = now;
             }
+          } else {
+            console.error('❌ 获取用户列表失败:', usersResponse.status);
           }
         }
       } catch (error) {

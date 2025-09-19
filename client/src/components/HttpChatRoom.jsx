@@ -44,15 +44,20 @@ function HttpChatRoom() {
     scrollToBottom();
   }, [messages]);
 
-  // 初始化聊天API - 只在组件挂载时执行一次
+  // 初始化聊天API - 使用 useRef 确保只创建一次
+  const chatAPIInitialized = useRef(false);
+  
   useEffect(() => {
+    if (chatAPIInitialized.current) return;
+    chatAPIInitialized.current = true;
+    
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? window.location.origin 
       : 'http://localhost:3002';
     
     chatAPI.current = new SimpleChatAPI(baseUrl);
     
-    // 设置回调
+    // 设置回调 - 使用稳定的引用
     chatAPI.current.onMessage((newMessages) => {
       if (Array.isArray(newMessages)) {
         setMessages(newMessages);
