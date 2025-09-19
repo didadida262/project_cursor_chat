@@ -33,6 +33,8 @@ const messageSchema = new mongoose.Schema({
 });
 
 const Message = mongoose.model('Message', messageSchema);
+
+// 内存存储作为备用方案
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' ? "*" : "http://localhost:3000",
@@ -60,8 +62,8 @@ const userHeartbeats = new Map();
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 10000; // 10秒无响应视为离线
-const HEARTBEAT_CHECK_INTERVAL = 5000; // 每5秒检查一次
+const HEARTBEAT_TIMEOUT = 15000; // 15秒无响应视为离线
+const HEARTBEAT_CHECK_INTERVAL = 10000; // 每10秒检查一次
 
 // 心跳检测定时器
 setInterval(() => {
@@ -107,16 +109,21 @@ async function getMessages() {
         .sort({ timestamp: -1 })
         .limit(HISTORY_LIMIT)
         .lean();
-      return messages.reverse();
+      
+      console.log(`从 MongoDB 获取了 ${messages.length} 条消息`);
+      return messages.reverse(); // 返回时按时间正序排列
     } else {
-      // 使用内存存储
-      console.log('Using memory storage for messages');
-      return memoryMessages.slice(-HISTORY_LIMIT);
+      // MongoDB 不可用，使用内存存储
+      const messages = memoryMessages.slice(-HISTORY_LIMIT);
+      console.log(`从内存获取了 ${messages.length} 条消息`);
+      return messages;
     }
   } catch (error) {
-    console.error('Error getting messages:', error);
-    // 降级到内存存储
-    return memoryMessages.slice(-HISTORY_LIMIT);
+    console.error('获取消息失败:', error);
+    // 出错时返回内存存储的消息
+    const messages = memoryMessages.slice(-HISTORY_LIMIT);
+    console.log(`从内存获取了 ${messages.length} 条消息 (fallback)`);
+    return messages;
   }
 }
 
@@ -218,7 +225,10 @@ app.post('/api/clear-users', (req, res) => {
 });
 
 app.get('/api/users', (req, res) => {
-  res.json(Array.from(onlineUsers.values()));
+  const users = Array.from(onlineUsers.values());
+  console.log(`📊 API请求用户列表，当前在线: ${users.length} 人`);
+  console.log(`📊 用户详情:`, users.map(u => `${u.nickname}(id:${u.id})`));
+  res.json(users);
 });
 
 app.get('/api/messages', async (req, res) => {
@@ -254,6 +264,7 @@ app.post('/api/join', (req, res) => {
   userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
   console.log(`✅ 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
   console.log(`👥 当前在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
   
   res.json({ success: true, user });
 });
@@ -305,7 +316,10 @@ app.post('/api/message', async (req, res) => {
     userHeartbeats.set(messageData.userId, Date.now());
   }
   
+  // 立即返回响应，不等待数据库保存完成
   res.json({ success: true, message });
+  
+  console.log(`✅ 消息API响应已发送`);
 });
 
 // Socket.io 连接处理
