@@ -16,6 +16,13 @@ class SimpleChatAPI {
   async connect(userData) {
     console.log('🔗 尝试连接到聊天室:', { userData, baseUrl: this.baseUrl });
     
+    // 如果已经在连接状态，先停止轮询
+    if (this.isConnected) {
+      console.log('🔄 已在连接状态，先停止当前连接');
+      this.stopPolling();
+      this.isConnected = false;
+    }
+    
     this.userId = userData.id;
     this.nickname = userData.nickname;
     

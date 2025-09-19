@@ -58,6 +58,21 @@ const onlineUsers = new Map();
 // 用户心跳检测 - 记录用户最后活跃时间
 const userHeartbeats = new Map();
 
+// 用户列表广播防抖
+let lastUsersBroadcast = 0;
+const USERS_BROADCAST_THROTTLE = 2000; // 2秒内最多广播一次
+
+// 节流的用户列表广播函数
+function broadcastUsersThrottled() {
+  const now = Date.now();
+  if (now - lastUsersBroadcast > USERS_BROADCAST_THROTTLE) {
+    const users = Array.from(onlineUsers.values());
+    io.emit('users', users);
+    lastUsersBroadcast = now;
+    console.log(`📤 广播用户列表，当前在线: ${users.length} 人`);
+  }
+}
+
 // 内存存储作为备用方案
 const memoryMessages = [];
 
@@ -90,14 +105,8 @@ setInterval(() => {
       }
     });
     
-    // 广播更新后的用户列表
-    io.emit('users', Array.from(onlineUsers.values()));
-    console.log(`📤 已广播清理后的用户列表，当前在线: ${onlineUsers.size} 人`);
-  } else {
-    // 即使没有用户离线，也定期广播当前用户列表，保持同步
-    if (onlineUsers.size > 0) {
-      io.emit('users', Array.from(onlineUsers.values()));
-    }
+    // 广播更新后的用户列表（节流）
+    broadcastUsersThrottled();
   }
 }, HEARTBEAT_CHECK_INTERVAL);
 

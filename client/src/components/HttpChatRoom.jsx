@@ -60,21 +60,33 @@ function HttpChatRoom() {
     });
     
     chatAPI.current.onUsers((userList) => {
-      setUsers(userList);
+      // 只在用户列表真正变化时才更新状态
+      setUsers(prevUsers => {
+        // 比较用户列表是否真的发生了变化
+        if (prevUsers.length !== userList.length) {
+          console.log(`📊 用户数量变化: ${prevUsers.length} -> ${userList.length}`);
+          return userList;
+        }
+        
+        // 检查是否有用户加入或离开
+        const prevUserIds = prevUsers.map(u => u.id).sort();
+        const newUserIds = userList.map(u => u.id).sort();
+        const hasChanged = JSON.stringify(prevUserIds) !== JSON.stringify(newUserIds);
+        
+        if (hasChanged) {
+          console.log('📊 用户列表发生变化');
+          return userList;
+        }
+        
+        // 没有变化，返回之前的状态
+        return prevUsers;
+      });
       
-      // 检查当前用户是否还在用户列表中
-      if (userInfo && isConnected) {
-        const currentUserInList = userList.find(u => u.id === userInfo.id);
+      // 检查当前用户是否还在用户列表中（仅记录日志，不自动重连）
+      if (userInfoRef.current && isConnectedRef.current) {
+        const currentUserInList = userList.find(u => u.id === userInfoRef.current.id);
         if (!currentUserInList) {
-          console.log('🔄 检测到当前用户不在列表中，尝试重新连接...');
-          // 重新连接
-          chatAPI.current.connect(userInfo).then(success => {
-            if (success) {
-              console.log('✅ 重新连接成功');
-            } else {
-              console.log('❌ 重新连接失败');
-            }
-          });
+          console.log('⚠️ 当前用户不在列表中，可能是网络问题或服务器重启');
         }
       }
     });
