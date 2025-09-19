@@ -67,8 +67,42 @@ async function initDatabase() {
   }
 }
 
-// 启动时初始化数据库
-initDatabase();
+// 启动时初始化数据库，延迟执行确保连接建立
+setTimeout(initDatabase, 3000);
+
+// 确保表存在的函数
+async function ensureTablesExist() {
+  if (!pool) return;
+  
+  try {
+    // 检查users表是否存在
+    const usersTableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      );
+    `);
+    
+    // 检查messages表是否存在
+    const messagesTableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'messages'
+      );
+    `);
+    
+    if (!usersTableExists.rows[0].exists || !messagesTableExists.rows[0].exists) {
+      console.log('🔄 检测到表不存在，重新初始化数据库...');
+      await initDatabase();
+    }
+  } catch (error) {
+    console.error('❌ 检查表存在性失败:', error);
+    // 如果检查失败，尝试重新初始化
+    await initDatabase();
+  }
+}
 
 // 内存存储作为备用方案
 const io = new Server(server, {
@@ -192,6 +226,10 @@ async function saveUser(userData) {
     console.log(`💾 [${serverInstanceId}] saveUser被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
     if (pool) {
       console.log(`💾 [${serverInstanceId}] 开始保存用户到PostgreSQL:`, userData);
+      
+      // 先确保表存在
+      await ensureTablesExist();
+      
       const result = await pool.query(
         `INSERT INTO users (id, nickname, is_online, join_time, last_heartbeat) 
          VALUES ($1, $2, $3, $4, $5) 
@@ -216,6 +254,11 @@ async function saveUser(userData) {
     }
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 保存用户状态到PostgreSQL失败:`, error);
+    // 如果表不存在，尝试创建表
+    if (error.message.includes('relation') && error.message.includes('does not exist')) {
+      console.log(`🔄 [${serverInstanceId}] 检测到表不存在，尝试创建表...`);
+      await initDatabase();
+    }
   }
 }
 
@@ -238,6 +281,10 @@ async function getAllOnlineUsers() {
     console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
     if (pool) {
       console.log(`💾 [${serverInstanceId}] 开始从PostgreSQL查询在线用户...`);
+      
+      // 先确保表存在
+      await ensureTablesExist();
+      
       const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
       const users = result.rows.map(row => ({
         id: row.id,
