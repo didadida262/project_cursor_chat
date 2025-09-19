@@ -227,9 +227,9 @@ function SimpleChatRoom() {
             onChange={(e) => setCurrentMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="输入消息..."
-            autoSize={{ minRows: 1, maxRows: 4 }}
             style={{
-              resize: 'none'
+              resize: 'none',
+              height: '100px'
             }}
           />
           <Button 

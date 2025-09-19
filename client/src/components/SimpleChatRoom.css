@@ -72,7 +72,7 @@
 .messages-container {
   flex: 1;
   padding: 20px;
-  padding-bottom: 110px; /* 为底部输入区域预留空间 */
+  padding-bottom: 160px; /* 为底部输入区域预留空间 */
   overflow-y: auto;
   min-height: 0;
 }
@@ -98,7 +98,7 @@
 
 .message-content {
   max-width: 70%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 12px;
   position: relative;
 }
@@ -118,25 +118,31 @@
 
 .message-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-size: 12px;
   opacity: 0.8;
+  gap: 12px;
 }
 
 .message-nickname {
   font-weight: 600;
+  color: #ffffff;
 }
 
 .message-time {
   opacity: 0.7;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .message-text {
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
   word-wrap: break-word;
+  margin-top: 2px;
 }
 
 /* 输入区域 */
@@ -148,7 +154,7 @@
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.02);
-  min-height: 90px;
+  min-height: 140px;
   display: flex;
   flex-direction: row;
   gap: 12px;
@@ -159,8 +165,8 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
-  border-radius: 0px;
-  min-height: 50px;
+  border-radius: 0px !important;
+  height: 100px !important;
 }
 
 .input-container .ant-input::placeholder {
@@ -171,9 +177,13 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
-  border-radius: 0px;
+  border-radius: 0px !important;
   flex: 1;
-  min-height: 50px;
+  height: 100px !important;
+}
+
+.input-container .ant-input-textarea .ant-input {
+  border-radius: 0px !important;
 }
 
 .input-container .ant-input-textarea::placeholder {
@@ -197,9 +207,9 @@
 .input-container .ant-btn-primary {
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
   border: none;
-  height: 50px;
+  height: 100px !important;
   font-weight: 500;
-  border-radius: 0px;
+  border-radius: 0px !important;
   flex-shrink: 0;
   min-width: 60px;
 }

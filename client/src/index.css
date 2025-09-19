@@ -57,7 +57,7 @@ html, body {
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   color: #ffffff !important;
-  border-radius: 12px !important;
+  border-radius: 0px !important;
   backdrop-filter: blur(10px);
 }
 
@@ -75,7 +75,7 @@ html, body {
 }
 
 .ant-btn {
-  border-radius: 12px !important;
+  border-radius: 0px !important;
   font-weight: 600 !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   backdrop-filter: blur(10px);
@@ -184,6 +184,22 @@ html, body {
 .ant-card * {
   border: none !important;
   outline: none !important;
+}
+
+/* 聊天输入框和按钮强制无圆角 */
+.simple-chat-room .ant-input,
+.simple-chat-room .ant-input-textarea,
+.simple-chat-room .ant-input-textarea .ant-input,
+.simple-chat-room .ant-btn,
+.simple-chat-room .ant-btn-primary {
+  border-radius: 0px !important;
+}
+
+/* 输入框和文本域边框圆角 */
+.ant-input,
+.ant-input-textarea,
+.ant-input-textarea .ant-input {
+  border-radius: 0px !important;
 }
 
 /* 动画效果 */

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, ConfigProvider, theme, App as AntdApp } from 'antd';
+import { Layout, ConfigProvider, App as AntdApp } from 'antd';
 import { io } from 'socket.io-client';
 import SimpleChatRoom from './components/SimpleChatRoom';
 import ParticleBackground from './components/ParticleBackground';
@@ -10,8 +10,6 @@ const { Header, Content } = Layout;
 
 function App() {
   const [socket, setSocket] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState([theme.defaultAlgorithm]);
 
   useEffect(() => {
     // 初始化Socket连接
@@ -22,12 +20,6 @@ function App() {
       newSocket.close();
     };
   }, []);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    setCurrentTheme(isDarkMode ? [theme.defaultAlgorithm] : [theme.darkAlgorithm]);
-  };
-
 
   if (!socket) {
     return (
@@ -47,7 +39,7 @@ function App() {
   }
 
   return (
-    <ConfigProvider theme={{ algorithm: currentTheme }}>
+    <ConfigProvider>
       <AntdApp>
         <SocketContext.Provider value={socket}>
           <ParticleBackground />
@@ -55,14 +47,6 @@ function App() {
           <Header className="app-header">
             <div className="header-content">
               <h1>在线聊天室</h1>
-              <div className="header-controls">
-                <button 
-                  className="theme-toggle"
-                  onClick={toggleTheme}
-                >
-                  {isDarkMode ? '🌞' : '🌙'}
-                </button>
-              </div>
             </div>
           </Header>
           <Content className="app-content">
