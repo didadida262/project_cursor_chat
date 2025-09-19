@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, ConfigProvider, theme, App as AntdApp } from 'antd';
 import { io } from 'socket.io-client';
-import ChatRoom from './components/ChatRoom';
-import VideoCall from './components/VideoCall';
+import SimpleChatRoom from './components/SimpleChatRoom';
 import ParticleBackground from './components/ParticleBackground';
 import { SocketContext } from './contexts/SocketContext';
 import './App.css';
@@ -12,10 +11,7 @@ const { Header, Content } = Layout;
 function App() {
   const [socket, setSocket] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isVideoCall, setIsVideoCall] = useState(false);
   const [currentTheme, setCurrentTheme] = useState([theme.defaultAlgorithm]);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
 
   useEffect(() => {
     // 初始化Socket连接
@@ -32,9 +28,6 @@ function App() {
     setCurrentTheme(isDarkMode ? [theme.defaultAlgorithm] : [theme.darkAlgorithm]);
   };
 
-  const handleStreamUpdate = (stream) => {
-    setLocalStream(stream);
-  };
 
   if (!socket) {
     return (
@@ -69,29 +62,11 @@ function App() {
                 >
                   {isDarkMode ? '🌞' : '🌙'}
                 </button>
-                <button 
-                  className="video-toggle"
-                  onClick={() => setIsVideoCall(!isVideoCall)}
-                >
-                  {isVideoCall ? '💬' : '📹'}
-                </button>
               </div>
             </div>
           </Header>
           <Content className="app-content">
-            {isVideoCall ? (
-              <VideoCall 
-                onBack={() => setIsVideoCall(false)} 
-                onStreamUpdate={handleStreamUpdate}
-              />
-                    ) : (
-                      <ChatRoom 
-                        onStartVideo={() => setIsVideoCall(true)} 
-                        localStream={localStream}
-                        remoteStream={remoteStream}
-                        onStreamUpdate={handleStreamUpdate}
-                      />
-                    )}
+            <SimpleChatRoom />
           </Content>
         </Layout>
         </SocketContext.Provider>

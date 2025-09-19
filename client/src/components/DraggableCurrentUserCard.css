@@ -1,0 +1,128 @@
+/* 可拖拽的当前用户卡片样式 */
+.draggable-current-user-card {
+  border-radius: 0 !important;
+  border: none !important;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.draggable-current-user-card .ant-card-body {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 拖拽状态 */
+.draggable-current-user-card.dragging {
+  transform: scale(1.02) !important;
+  box-shadow: 0 8px 32px rgba(0, 150, 255, 0.4) !important;
+  transition: none !important;
+  z-index: 1000 !important;
+  will-change: transform, left, top;
+}
+
+/* 上半部分 - 图片区域，占据80% */
+.image-container {
+  height: 224px; /* 280 * 0.8 = 224px */
+  width: 100%;
+  background-color: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.user-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #2a2a2a;
+  pointer-events: none; /* 防止图片干扰拖拽 */
+}
+
+/* 下半部分 - 名称区域，占据20% */
+.name-container {
+  height: 56px; /* 280 * 0.2 = 56px */
+  width: 100%;
+  background-color: #1a2332;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.user-name {
+  color: #40a9ff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  pointer-events: none; /* 防止文字干扰拖拽 */
+}
+
+/* 悬停效果 */
+.draggable-current-user-card:hover:not(.dragging) {
+  transform: scale(1.01);
+  box-shadow: 0 6px 24px rgba(0, 150, 255, 0.35);
+}
+
+/* 硬件加速优化 */
+.draggable-current-user-card {
+  will-change: transform, left, top;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .image-container {
+    height: 180px;
+  }
+  
+  .name-container {
+    height: 45px;
+  }
+  
+  .user-name {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-container {
+    height: 140px;
+  }
+  
+  .name-container {
+    height: 35px;
+  }
+  
+  .user-name {
+    font-size: 11px;
+  }
+}
+
+/* 确保卡片在所有元素之上 */
+.draggable-current-user-card {
+  position: fixed !important;
+  z-index: 100;
+}
+
+/* 拖拽时的视觉反馈 */
+.draggable-current-user-card.dragging .image-container {
+  background-color: #1a2332;
+}
+
+.draggable-current-user-card.dragging .name-container {
+  background-color: #0f1419;
+}

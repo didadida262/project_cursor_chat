@@ -1,0 +1,98 @@
+/* 简化版用户卡片样式 */
+.simple-user-card {
+  border-radius: 0 !important;
+  border: none !important;
+  overflow: hidden;
+}
+
+.simple-user-card .ant-card-body {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 上半部分 - 图片区域，占据80% */
+.image-container {
+  height: 224px; /* 280 * 0.8 = 224px */
+  width: 100%;
+  background-color: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.user-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #2a2a2a;
+}
+
+/* 下半部分 - 名称区域，占据20% */
+.name-container {
+  height: 56px; /* 280 * 0.2 = 56px */
+  width: 100%;
+  background-color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.user-name {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* 当前用户卡片特殊样式 */
+.simple-user-card.current-user {
+  box-shadow: 0 4px 20px rgba(0, 150, 255, 0.3);
+}
+
+.simple-user-card.current-user .name-container {
+  background-color: #1a2332;
+}
+
+.simple-user-card.current-user .user-name {
+  color: #40a9ff;
+  font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .image-container {
+    height: 180px;
+  }
+  
+  .name-container {
+    height: 45px;
+  }
+  
+  .user-name {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-container {
+    height: 140px;
+  }
+  
+  .name-container {
+    height: 35px;
+  }
+  
+  .user-name {
+    font-size: 11px;
+  }
+}

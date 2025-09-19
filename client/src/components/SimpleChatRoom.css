@@ -1,0 +1,284 @@
+/* 简化版聊天室样式 */
+.simple-chat-room {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  overflow: hidden;
+}
+
+/* 昵称输入页面 */
+.nickname-input-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.nickname-card {
+  width: 400px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.nickname-card .ant-card-body {
+  padding: 32px;
+}
+
+.nickname-input-content {
+  text-align: center;
+}
+
+/* 左侧用户列表区域 */
+.users-sidebar {
+  background: rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.users-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-content: start;
+}
+
+.current-user-wrapper {
+  position: relative;
+}
+
+.other-user-wrapper {
+  position: relative;
+}
+
+/* 右侧聊天区域 */
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.messages-container {
+  flex: 1;
+  padding: 20px;
+  padding-bottom: 110px; /* 为底部输入区域预留空间 */
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-item {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.message-item.own-message {
+  justify-content: flex-end;
+}
+
+.message-item.other-message {
+  justify-content: flex-start;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.own-message .message-content {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.other-message .message-content {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom-left-radius: 4px;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.message-nickname {
+  font-weight: 600;
+}
+
+.message-time {
+  opacity: 0.7;
+}
+
+.message-text {
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* 输入区域 */
+.input-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  min-height: 90px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.input-container .ant-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 0px;
+  min-height: 50px;
+}
+
+.input-container .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.input-container .ant-input-textarea {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 0px;
+  flex: 1;
+  min-height: 50px;
+}
+
+.input-container .ant-input-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.input-container .ant-input:focus,
+.input-container .ant-input-focused {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.input-container .ant-input-textarea:focus,
+.input-container .ant-input-textarea-focused {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.input-container .ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  height: 50px;
+  font-weight: 500;
+  border-radius: 0px;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.input-container .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+/* 空状态样式 */
+.empty-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+}
+
+.ant-empty {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ant-empty-description {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 滚动条样式 */
+.users-sidebar::-webkit-scrollbar,
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.users-sidebar::-webkit-scrollbar-track,
+.messages-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.users-sidebar::-webkit-scrollbar-thumb,
+.messages-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.users-sidebar::-webkit-scrollbar-thumb:hover,
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .simple-chat-room {
+    flex-direction: column;
+  }
+  
+  .users-sidebar {
+    width: 100% !important;
+    height: 200px;
+    max-width: none !important;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  
+  .chat-content {
+    height: calc(100vh - 200px);
+  }
+  
+  .messages-container {
+    max-height: calc(100vh - 280px);
+  }
+}
