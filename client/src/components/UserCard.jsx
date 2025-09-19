@@ -56,7 +56,7 @@ function UserCard({
   localStream = null,
   remoteStream = null
 }) {
-  const [position, setPosition] = useState(isCurrentUser ? { x: 20, y: window.innerHeight - 500 } : null);
+  const [position, setPosition] = useState(isCurrentUser ? { x: 20, y: window.innerHeight - 500 } : { x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const cardRef = useRef(null);
   const videoRef = useRef(null);
@@ -77,7 +77,7 @@ function UserCard({
 
   // 简单的拖拽处理函数
   const handleMouseDown = useCallback((e) => {
-    if (!isCurrentUser) return; // 只有当前用户才能拖拽
+    if (!isCurrentUser || !position) return; // 只有当前用户才能拖拽
     
     // 检查是否点击在按钮上
     if (e.target.closest('.control-btn') || e.target.closest('.ant-btn')) {
@@ -116,7 +116,7 @@ function UserCard({
   }, [isCurrentUser, position.x, position.y]);
 
   const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
+    if (!isDragging || !dragOffset.current || dragOffset.current.x === undefined || dragOffset.current.y === undefined) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -189,7 +189,7 @@ function UserCard({
 
   // 触摸事件
   const handleTouchStart = useCallback((e) => {
-    if (!isCurrentUser) return; // 只有当前用户才能拖拽
+    if (!isCurrentUser || !position) return; // 只有当前用户才能拖拽
     
     // 检查是否点击在按钮上
     if (e.target.closest('.control-btn') || e.target.closest('.ant-btn')) {
@@ -220,7 +220,7 @@ function UserCard({
   }, [isCurrentUser, position.x, position.y]);
 
   const handleTouchMove = useCallback((e) => {
-    if (!isDragging) return;
+    if (!isDragging || !dragOffset.current || dragOffset.current.x === undefined || dragOffset.current.y === undefined) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -338,10 +338,12 @@ function UserCard({
         borderRadius: '0px !important'
       }}
       size="small"
-      bodyStyle={{ 
-        padding: 0, 
-        height: '100%',
-        borderRadius: '0px !important'
+      styles={{
+        body: {
+          padding: 0, 
+          height: '100%',
+          borderRadius: '0px !important'
+        }
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}

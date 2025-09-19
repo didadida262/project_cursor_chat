@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, ConfigProvider, theme } from 'antd';
+import { Layout, ConfigProvider, theme, App as AntdApp } from 'antd';
 import { io } from 'socket.io-client';
 import ChatRoom from './components/ChatRoom';
 import VideoCall from './components/VideoCall';
@@ -55,9 +55,10 @@ function App() {
 
   return (
     <ConfigProvider theme={{ algorithm: currentTheme }}>
-      <SocketContext.Provider value={socket}>
-        <ParticleBackground />
-        <Layout className="app-layout">
+      <AntdApp>
+        <SocketContext.Provider value={socket}>
+          <ParticleBackground />
+          <Layout className="app-layout">
           <Header className="app-header">
             <div className="header-content">
               <h1>在线聊天室</h1>
@@ -93,7 +94,8 @@ function App() {
                     )}
           </Content>
         </Layout>
-      </SocketContext.Provider>
+        </SocketContext.Provider>
+      </AntdApp>
     </ConfigProvider>
   );
 }
