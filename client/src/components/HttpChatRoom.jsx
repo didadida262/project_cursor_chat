@@ -313,7 +313,7 @@ function HttpChatRoom() {
         <Sider width="70%" className="users-sidebar">
           <div className="users-header">
             <Title level={4} style={{ color: '#ffffff', margin: 0 }}>
-              在线用户 ({users.length})
+              在线用户 ({users.filter(user => user.id !== userInfo?.id).length + 1})
             </Title>
           </div>
           

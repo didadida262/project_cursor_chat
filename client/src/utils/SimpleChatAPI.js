@@ -96,20 +96,16 @@ class SimpleChatAPI {
           }
         }
 
-        // 获取用户列表（节流）
-        const now = Date.now();
-        if (now - this.lastUsersUpdate > this.usersUpdateThrottle) {
-          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
-          if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
-            if (this.usersCallback) {
-              this.usersCallback(users);
-              this.lastUsersUpdate = now;
-            }
-          } else {
-            console.error('❌ 获取用户列表失败:', usersResponse.status);
+        // 获取用户列表（每次轮询都获取，确保实时性）
+        const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+        if (usersResponse.ok) {
+          const users = await usersResponse.json();
+          console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
+          if (this.usersCallback) {
+            this.usersCallback(users);
           }
+        } else {
+          console.error('❌ 获取用户列表失败:', usersResponse.status);
         }
       } catch (error) {
         console.error('轮询错误:', error);
