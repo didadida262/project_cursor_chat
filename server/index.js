@@ -531,16 +531,35 @@ app.get('/health', async (req, res) => {
 });
 
 // 清理所有用户（用于测试）
-app.post('/api/clear-users', (req, res) => {
-  const userCount = onlineUsers.size;
-  onlineUsers.clear();
-  console.log(`🧹 清理了 ${userCount} 个用户`);
-  
-  res.json({ 
-    success: true, 
-    message: `已清理 ${userCount} 个用户`,
-    timestamp: new Date().toISOString()
-  });
+app.post('/api/clear-users', async (req, res) => {
+  try {
+    const userCount = onlineUsers.size;
+    
+    // 清理内存中的用户
+    onlineUsers.clear();
+    userHeartbeats.clear();
+    
+    // 清理PostgreSQL中的用户
+    if (pool) {
+      await pool.query('DELETE FROM users');
+      console.log(`🧹 清理了PostgreSQL中的所有用户`);
+    }
+    
+    console.log(`🧹 清理了内存中的 ${userCount} 个用户`);
+    
+    res.json({ 
+      success: true, 
+      message: `已清理 ${userCount} 个用户（内存）和所有数据库用户`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('清理用户失败:', error);
+    res.json({ 
+      success: false, 
+      message: `清理用户失败: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.get('/api/users', async (req, res) => {
@@ -552,14 +571,61 @@ app.get('/api/users', async (req, res) => {
     console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
     
-    // 同时更新PostgreSQL中的数据，保持数据一致性
-    if (memoryUsers.length > 0 && pool) {
-      for (const user of memoryUsers) {
-        await saveUser(user);
+    // 清理PostgreSQL中的重复用户和无效用户
+    if (pool) {
+      try {
+        // 删除PostgreSQL中不在内存中的用户
+        const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true');
+        const dbUsers = dbResult.rows;
+        
+        for (const dbUser of dbUsers) {
+          const memoryUser = memoryUsers.find(u => u.id === dbUser.id);
+          if (!memoryUser) {
+            // 数据库中有但内存中没有的用户，删除
+            await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
+            console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname} (ID: ${dbUser.id})`);
+          }
+        }
+        
+        // 清理重复昵称的用户（保留最新的）
+        const nicknameGroups = {};
+        for (const user of memoryUsers) {
+          if (!nicknameGroups[user.nickname]) {
+            nicknameGroups[user.nickname] = [];
+          }
+          nicknameGroups[user.nickname].push(user);
+        }
+        
+        for (const [nickname, users] of Object.entries(nicknameGroups)) {
+          if (users.length > 1) {
+            // 有重复昵称，保留最新的，删除其他的
+            const sortedUsers = users.sort((a, b) => new Date(b.joinTime) - new Date(a.joinTime));
+            const keepUser = sortedUsers[0];
+            const removeUsers = sortedUsers.slice(1);
+            
+            for (const user of removeUsers) {
+              onlineUsers.delete(user.id);
+              userHeartbeats.delete(user.id);
+              await pool.query('DELETE FROM users WHERE id = $1', [user.id]);
+              console.log(`🧹 清理重复昵称用户: ${user.nickname} (ID: ${user.id})`);
+            }
+            
+            console.log(`✅ 保留用户: ${keepUser.nickname} (ID: ${keepUser.id})`);
+          }
+        }
+        
+        // 更新内存用户列表
+        const cleanedUsers = Array.from(onlineUsers.values());
+        for (const user of cleanedUsers) {
+          await saveUser(user);
+        }
+        
+      } catch (error) {
+        console.error('清理用户数据失败:', error);
       }
     }
     
-    res.json(memoryUsers);
+    res.json(Array.from(onlineUsers.values()));
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error);
     // 出错时返回空数组
