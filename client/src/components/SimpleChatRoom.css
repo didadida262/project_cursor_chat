@@ -412,6 +412,24 @@
   text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
 }
 
+.ant-modal-body * {
+  color: #ffffff !important;
+}
+
+.ant-modal-confirm-body {
+  color: #ffffff !important;
+}
+
+.ant-modal-confirm-body .ant-modal-confirm-title {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
+}
+
+.ant-modal-confirm-body .ant-modal-confirm-content {
+  color: #ffffff !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
+}
+
 .ant-modal-footer {
   background: transparent !important;
   border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
