@@ -305,17 +305,23 @@ async function saveUser(userData) {
   }
 }
 
+// 删除用户函数
 async function removeUser(userId) {
   try {
+    console.log(`🗑️ [${serverInstanceId}] removeUser被调用，删除用户ID: ${userId}`);
     if (pool) {
-      // 直接删除用户记录，而不是标记为离线
-      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-      console.log(`💾 用户已从PostgreSQL删除: ${userId}`);
+      console.log(`🗑️ [${serverInstanceId}] 开始从PostgreSQL删除用户: ${userId}`);
+      
+      const result = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+      console.log(`🗑️ [${serverInstanceId}] 用户删除结果: ${result.rowCount} 行被删除`);
+    } else {
+      console.log(`🗑️ [${serverInstanceId}] PostgreSQL未连接，跳过删除用户`);
     }
   } catch (error) {
-    console.error('从PostgreSQL删除用户失败:', error);
+    console.error(`❌ [${serverInstanceId}] 删除用户失败:`, error);
   }
 }
+
 
 async function getAllOnlineUsers() {
   try {
