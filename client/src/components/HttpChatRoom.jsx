@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Input, Button, Typography, Card, Space, Empty, App, notification } from 'antd';
+import { Layout, Input, Button, Typography, Card, Space, Empty, App, notification, Modal } from 'antd';
 import { SendOutlined, UserOutlined } from '@ant-design/icons';
 import SimpleUserCard from './SimpleUserCard';
 import DraggableCurrentUserCard from './DraggableCurrentUserCard';
@@ -20,6 +20,7 @@ function HttpChatRoom() {
   const [nickname, setNickname] = useState('');
   const [showNicknameInput, setShowNicknameInput] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const messagesEndRef = useRef(null);
   const chatAPI = useRef(null);
   const userInfoRef = useRef(null);
@@ -121,22 +122,64 @@ function HttpChatRoom() {
 
     console.log('📡 用户已连接，添加页面事件监听器');
 
-    // 页面卸载时自动离开
+    // 页面卸载时显示确认弹窗
     const handleBeforeUnload = (event) => {
-      if (userInfoRef.current && isConnectedRef.current) {
-        console.log('🚪 页面卸载，准备离开聊天室，原因: tab_close');
-        chatAPI.current.disconnect('tab_close'); // 使用统一的 disconnect 方法
+      if (userInfoRef.current && isConnectedRef.current && !isLeaving) {
+        event.preventDefault();
+        event.returnValue = '';
+        
+        Modal.confirm({
+          title: '🚪 确认离开聊天室',
+          content: '确定要离开聊天室吗？离开后将从在线用户列表中移除。',
+          okText: '确认离开',
+          cancelText: '取消',
+          okType: 'danger',
+          onOk: async () => {
+            setIsLeaving(true);
+            console.log('🚪 用户确认离开，开始删除用户数据...');
+            
+            try {
+              // 调用 disconnect 删除用户数据
+              await chatAPI.current.disconnect('tab_close');
+              console.log('✅ 用户数据删除成功');
+            } catch (error) {
+              console.error('❌ 删除用户数据失败:', error);
+            }
+            
+            // 延迟关闭页面，确保请求发送完成
+            setTimeout(() => {
+              window.close();
+            }, 500);
+          }
+        });
       }
     };
 
-    // 页面隐藏时也离开（移动端切换应用时）
+    // 页面隐藏时显示确认弹窗（移动端切换应用时）
     const handleVisibilityChange = () => {
       console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
-      // 只有在页面真正隐藏且用户已连接时才离开
-      if (document.hidden && userInfoRef.current && isConnectedRef.current) {
-        console.log('👁️ 页面隐藏，准备离开聊天室，原因: page_refresh');
-        chatAPI.current.disconnect('page_refresh'); // 传递页面刷新的原因
-        console.log('👁️ 页面隐藏，离开聊天室完成');
+      // 只有在页面真正隐藏且用户已连接时才显示确认
+      if (document.hidden && userInfoRef.current && isConnectedRef.current && !isLeaving) {
+        console.log('👁️ 页面隐藏，显示离开确认弹窗');
+        
+        Modal.confirm({
+          title: '🔄 确认离开聊天室',
+          content: '页面即将隐藏，确定要离开聊天室吗？',
+          okText: '确认离开',
+          cancelText: '取消',
+          okType: 'danger',
+          onOk: async () => {
+            setIsLeaving(true);
+            console.log('👁️ 用户确认离开，开始删除用户数据...');
+            
+            try {
+              await chatAPI.current.disconnect('page_refresh');
+              console.log('✅ 用户数据删除成功');
+            } catch (error) {
+              console.error('❌ 删除用户数据失败:', error);
+            }
+          }
+        });
       }
     };
 

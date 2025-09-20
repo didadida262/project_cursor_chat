@@ -266,7 +266,7 @@ class SimpleChatAPI {
   }
 
   // 断开连接
-  disconnect(reason = 'manual_disconnect') {
+  async disconnect(reason = 'manual_disconnect') {
     console.log('🔌 正在断开连接，原因:', reason);
     this.isConnected = false;
     this.stopPolling();
@@ -292,21 +292,27 @@ class SimpleChatAPI {
         }
       } else {
         // 降级到普通 fetch
-        fetch(`${this.baseUrl}/api/leave`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: this.userId, reason })
-        }).catch(error => {
+        try {
+          const response = await fetch(`${this.baseUrl}/api/leave`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: this.userId, reason })
+          });
+          console.log('✅ 离开请求发送成功，原因:', reason);
+          return response.ok;
+        } catch (error) {
           console.error('离开请求失败:', error);
-        });
+          return false;
+        }
       }
       
-      // 清空用户信息
-      this.userId = null;
-      this.nickname = null;
-    }
+    // 清空用户信息
+    this.userId = null;
+    this.nickname = null;
+    
+    return true;
   }
 
   // 设置回调函数
