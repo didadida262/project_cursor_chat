@@ -757,8 +757,21 @@ app.post('/api/join', async (req, res) => {
     
     // 只有在通过昵称校验后才保存到PostgreSQL
     console.log(`💾 [${serverInstanceId}] 昵称校验通过，保存用户到PostgreSQL:`, user);
-    await saveUser(user);
-    console.log(`💾 [${serverInstanceId}] 用户保存完成`);
+    try {
+      await saveUser(user);
+      console.log(`💾 [${serverInstanceId}] 用户保存完成`);
+      
+      // 验证用户是否真的保存成功了
+      const verifyResult = await pool.query('SELECT * FROM users WHERE id = $1', [user.id]);
+      if (verifyResult.rows.length > 0) {
+        console.log(`✅ [${serverInstanceId}] 用户保存验证成功:`, verifyResult.rows[0]);
+      } else {
+        console.error(`❌ [${serverInstanceId}] 用户保存验证失败: 数据库中找不到用户 ${user.id}`);
+      }
+    } catch (saveError) {
+      console.error(`❌ [${serverInstanceId}] saveUser函数执行失败:`, saveError);
+      throw saveError; // 重新抛出错误
+    }
     
     console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
     
@@ -846,12 +859,22 @@ app.post('/api/message', async (req, res) => {
   
   try {
     // 验证发送者是否在数据库中存在
-    const result = await pool.query('SELECT id FROM users WHERE id = $1 AND is_online = true', [messageData.userId]);
-    const senderExists = result.rows.length > 0;
+    const result = await pool.query('SELECT id, nickname, is_online FROM users WHERE id = $1', [messageData.userId]);
+    console.log(`📊 [${serverInstanceId}] 查询发送者结果:`, result.rows);
+    
+    const senderExists = result.rows.length > 0 && result.rows[0].is_online === true;
     console.log(`📊 [${serverInstanceId}] 发送者在数据库中: ${senderExists}`);
     
     if (!senderExists) {
-      console.error(`❌ [${serverInstanceId}] 发送者不在线: ${messageData.userId}`);
+      // 详细调试信息
+      if (result.rows.length === 0) {
+        console.error(`❌ [${serverInstanceId}] 发送者ID不存在: ${messageData.userId}`);
+        // 检查数据库中所有在线用户
+        const allUsers = await pool.query('SELECT id, nickname, is_online FROM users WHERE is_online = true');
+        console.log(`📊 [${serverInstanceId}] 数据库中所有在线用户:`, allUsers.rows);
+      } else {
+        console.error(`❌ [${serverInstanceId}] 发送者存在但不在线:`, result.rows[0]);
+      }
       return res.status(400).json({ success: false, error: '用户不在线' });
     }
     
