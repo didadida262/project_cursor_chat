@@ -270,17 +270,17 @@ class SimpleChatAPI {
   }
 
   // 断开连接
-  disconnect() {
-    console.log('🔌 正在断开连接');
+  disconnect(reason = 'manual_disconnect') {
+    console.log('🔌 正在断开连接，原因:', reason);
     this.isConnected = false;
     this.stopPolling();
 
     if (this.userId) {
       // 优先使用 sendBeacon，确保在页面卸载时也能发送
       if (navigator.sendBeacon) {
-        const data = JSON.stringify({ userId: this.userId });
+        const data = JSON.stringify({ userId: this.userId, reason });
         const success = navigator.sendBeacon(`${this.baseUrl}/api/leave`, data);
-        console.log('📤 使用 sendBeacon 发送离开请求', success ? '成功' : '失败');
+        console.log('📤 使用 sendBeacon 发送离开请求', success ? '成功' : '失败', '原因:', reason);
         
         // 如果 sendBeacon 失败，尝试同步请求
         if (!success) {
@@ -289,7 +289,7 @@ class SimpleChatAPI {
             xhr.open('POST', `${this.baseUrl}/api/leave`, false); // 同步请求
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.send(data);
-            console.log('📤 同步请求离开聊天室完成');
+            console.log('📤 同步请求离开聊天室完成，原因:', reason);
           } catch (error) {
             console.error('📤 同步请求失败:', error);
           }
@@ -301,7 +301,7 @@ class SimpleChatAPI {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: this.userId })
+          body: JSON.stringify({ userId: this.userId, reason })
         }).catch(error => {
           console.error('离开请求失败:', error);
         });

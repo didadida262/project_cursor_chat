@@ -808,28 +808,47 @@ app.post('/api/join', async (req, res) => {
     return res.status(500).json({ success: false, error: '数据库未连接' });
   }
   
-  const user = {
-    id: userData.id,
-    nickname: userData.nickname,
-    isOnline: true,
-    joinTime: new Date().toISOString()
-  };
-  
-  // 直接保存到PostgreSQL
-  console.log(`💾 [${serverInstanceId}] 保存用户到PostgreSQL:`, user);
-  await saveUser(user);
-  console.log(`💾 [${serverInstanceId}] 用户保存完成`);
-  
-  console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
-  
-  res.json({ success: true, user });
+  try {
+    // 再次验证昵称是否可用（双重保险）
+    const nicknameCheck = await pool.query(
+      'SELECT id FROM users WHERE is_online = true AND LOWER(nickname) = LOWER($1)', 
+      [userData.nickname]
+    );
+    
+    if (nicknameCheck.rows.length > 0) {
+      console.log(`⚠️ [${serverInstanceId}] 昵称已被使用: ${userData.nickname}`);
+      return res.status(400).json({ 
+        success: false, 
+        error: `昵称"${userData.nickname}"已被使用，请选择其他昵称` 
+      });
+    }
+    
+    const user = {
+      id: userData.id,
+      nickname: userData.nickname,
+      isOnline: true,
+      joinTime: new Date().toISOString()
+    };
+    
+    // 只有在通过昵称校验后才保存到PostgreSQL
+    console.log(`💾 [${serverInstanceId}] 昵称校验通过，保存用户到PostgreSQL:`, user);
+    await saveUser(user);
+    console.log(`💾 [${serverInstanceId}] 用户保存完成`);
+    
+    console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
+    
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 用户加入失败:`, error);
+    res.status(500).json({ success: false, error: '用户加入失败' });
+  }
 });
 
-// 用户离开API - 完全基于数据库
+// 用户离开API - 只在关闭标签或返回输入页面时删除用户
 app.post('/api/leave', async (req, res) => {
-  const { userId } = req.body;
+  const { userId, reason } = req.body;
   
-  console.log(`👋 [${serverInstanceId}] 用户离开请求: ${userId}`);
+  console.log(`👋 [${serverInstanceId}] 用户离开请求: ${userId}, 原因: ${reason || '未知'}`);
   
   if (!pool) {
     console.error(`❌ [${serverInstanceId}] 数据库未连接，无法处理离开`);
@@ -837,9 +856,20 @@ app.post('/api/leave', async (req, res) => {
   }
   
   try {
-    // 直接从数据库删除用户
+    // 只有在以下情况才删除用户：
+    // 1. 关闭标签页 (reason: 'tab_close')
+    // 2. 返回输入页面 (reason: 'back_to_input')
+    // 3. 页面刷新 (reason: 'page_refresh')
+    const validReasons = ['tab_close', 'back_to_input', 'page_refresh'];
+    
+    if (!reason || !validReasons.includes(reason)) {
+      console.log(`⚠️ [${serverInstanceId}] 无效的离开原因，不删除用户: ${reason}`);
+      return res.json({ success: true, message: '用户状态保持，未删除' });
+    }
+    
+    // 从数据库删除用户
     await removeUser(userId);
-    console.log(`✅ [${serverInstanceId}] 用户已从数据库删除: ${userId}`);
+    console.log(`✅ [${serverInstanceId}] 用户已从数据库删除: ${userId}, 原因: ${reason}`);
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 删除用户失败:`, error);
   }
