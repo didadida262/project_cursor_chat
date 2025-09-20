@@ -32,6 +32,12 @@ if (DATABASE_URL) {
       await initDatabase();
     });
     
+    // 也立即尝试初始化（防止connect事件不触发）
+    setTimeout(async () => {
+      console.log('🔄 延迟初始化数据库表...');
+      await initDatabase();
+    }, 1000);
+    
   } catch (error) {
     console.error('❌ PostgreSQL连接池创建失败:', error);
     console.log('⚠️ Server will continue without PostgreSQL (using memory storage)');
@@ -708,6 +714,7 @@ app.post('/api/join', async (req, res) => {
   const userData = req.body;
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
+  console.log(`📊 [${serverInstanceId}] 数据库连接状态:`, pool ? '已连接' : '未连接');
   
   if (!pool) {
     console.error(`❌ [${serverInstanceId}] 数据库未连接，无法加入`);
@@ -715,6 +722,10 @@ app.post('/api/join', async (req, res) => {
   }
   
   try {
+    // 确保表存在
+    await ensureTablesExist();
+    console.log(`✅ [${serverInstanceId}] 数据库表检查完成`);
+    
     // 再次验证昵称是否可用（双重保险）
     const nicknameCheck = await pool.query(
       'SELECT id FROM users WHERE is_online = true AND LOWER(nickname) = LOWER($1)', 
