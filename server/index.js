@@ -571,61 +571,7 @@ app.get('/api/users', async (req, res) => {
     console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
     
-    // 清理PostgreSQL中的重复用户和无效用户
-    if (pool) {
-      try {
-        // 删除PostgreSQL中不在内存中的用户
-        const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true');
-        const dbUsers = dbResult.rows;
-        
-        for (const dbUser of dbUsers) {
-          const memoryUser = memoryUsers.find(u => u.id === dbUser.id);
-          if (!memoryUser) {
-            // 数据库中有但内存中没有的用户，删除
-            await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
-            console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname} (ID: ${dbUser.id})`);
-          }
-        }
-        
-        // 清理重复昵称的用户（保留最新的）
-        const nicknameGroups = {};
-        for (const user of memoryUsers) {
-          if (!nicknameGroups[user.nickname]) {
-            nicknameGroups[user.nickname] = [];
-          }
-          nicknameGroups[user.nickname].push(user);
-        }
-        
-        for (const [nickname, users] of Object.entries(nicknameGroups)) {
-          if (users.length > 1) {
-            // 有重复昵称，保留最新的，删除其他的
-            const sortedUsers = users.sort((a, b) => new Date(b.joinTime) - new Date(a.joinTime));
-            const keepUser = sortedUsers[0];
-            const removeUsers = sortedUsers.slice(1);
-            
-            for (const user of removeUsers) {
-              onlineUsers.delete(user.id);
-              userHeartbeats.delete(user.id);
-              await pool.query('DELETE FROM users WHERE id = $1', [user.id]);
-              console.log(`🧹 清理重复昵称用户: ${user.nickname} (ID: ${user.id})`);
-            }
-            
-            console.log(`✅ 保留用户: ${keepUser.nickname} (ID: ${keepUser.id})`);
-          }
-        }
-        
-        // 更新内存用户列表
-        const cleanedUsers = Array.from(onlineUsers.values());
-        for (const user of cleanedUsers) {
-          await saveUser(user);
-        }
-        
-      } catch (error) {
-        console.error('清理用户数据失败:', error);
-      }
-    }
-    
-    res.json(Array.from(onlineUsers.values()));
+    res.json(memoryUsers);
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error);
     // 出错时返回空数组
@@ -649,6 +595,7 @@ app.post('/api/join', async (req, res) => {
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 [${serverInstanceId}] 加入前用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
   console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   
   // 检查是否已存在相同昵称的用户（允许相同ID，因为可能是页面刷新）
@@ -671,8 +618,8 @@ app.post('/api/join', async (req, res) => {
     joinTime: new Date().toISOString()
   };
   
-  onlineUsers.set(userData.id, user);
-  userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
+  onlineUsers.set(user.id, user);
+  userHeartbeats.set(user.id, Date.now()); // 记录心跳时间
   
   // 立即发送一次心跳确认，确保用户真正在线
   console.log(`💓 [${serverInstanceId}] 用户加入，设置初始心跳时间: ${userData.nickname}`);
