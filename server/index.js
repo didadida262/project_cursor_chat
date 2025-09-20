@@ -22,7 +22,7 @@ if (DATABASE_URL) {
   try {
     pool = new Pool({
       connectionString: DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: { rejectUnauthorized: false } // 本地开发也使用SSL连接Neon
     });
     console.log('✅ PostgreSQL连接池创建成功');
     

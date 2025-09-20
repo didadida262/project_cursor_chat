@@ -29,22 +29,42 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 配置数据库环境
+**重要**：本地开发环境现在使用与线上一致的Neon PostgreSQL数据库。
+
+详细配置步骤请参考：[LOCAL_SETUP.md](./LOCAL_SETUP.md)
+
+#### 快速配置：
+```bash
+# 设置Neon数据库连接字符串
+export DATABASE_URL='postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require'
+```
+
+### 2. 安装依赖
 
 ```bash
 # 安装所有依赖（根目录、客户端、服务端）
 npm run install-all
 ```
 
-### 2. 开发环境运行
+### 3. 开发环境运行
 
+#### 使用启动脚本（推荐）
 ```bash
-# 同时启动客户端和服务端
-npm run dev
+# Windows
+.\start-local.bat
 
-# 或者分别启动
-npm run client  # 启动React开发服务器 (http://localhost:3000)
-npm run server  # 启动Node.js服务器 (http://localhost:3001)
+# macOS/Linux
+./start-local.sh
+```
+
+#### 手动启动
+```bash
+# 启动服务端（端口3002）
+cd server && npm start
+
+# 启动客户端（端口5173）
+cd client && npm run dev
 ```
 
 ### 3. 生产环境构建
