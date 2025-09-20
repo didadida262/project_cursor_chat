@@ -197,6 +197,21 @@ class SimpleChatAPI {
       if (response.ok) {
         const result = await response.json();
         console.log('✅ 消息发送成功:', result);
+        
+        // 消息发送成功后，立即获取一次用户列表，确保状态同步
+        try {
+          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+          if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            console.log(`📊 消息发送后立即获取用户列表: ${users.length} 人`, users.map(u => u.nickname));
+            if (this.usersCallback) {
+              this.usersCallback(users);
+            }
+          }
+        } catch (error) {
+          console.error('❌ 消息发送后获取用户列表失败:', error);
+        }
+        
         return true;
       } else {
         const errorText = await response.text();
