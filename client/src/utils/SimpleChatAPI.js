@@ -122,20 +122,25 @@ class SimpleChatAPI {
         }
 
         // 获取用户列表（每次轮询都获取，确保实时性）
-        const usersResponse = await fetch(`${this.baseUrl}/api/users`);
-        if (usersResponse.ok) {
-          const users = await usersResponse.json();
-          console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
-          if (this.usersCallback) {
-            this.usersCallback(users);
+        try {
+          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+          if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
+            if (this.usersCallback) {
+              this.usersCallback(users);
+            }
+          } else {
+            console.error('❌ 获取用户列表失败:', usersResponse.status, usersResponse.statusText);
           }
-        } else {
-          console.error('❌ 获取用户列表失败:', usersResponse.status);
+        } catch (error) {
+          console.error('❌ 获取用户列表网络错误:', error);
+          // 网络错误时不更新用户列表，避免显示空列表
         }
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 500); // 每0.5秒轮询一次，进一步提高响应速度
+    }, 2000); // 每2秒轮询一次，平衡实时性和服务器压力
   }
 
   // 停止轮询

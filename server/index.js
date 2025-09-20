@@ -173,58 +173,60 @@ function broadcastUsersThrottled() {
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 60000; // 60秒无响应视为离线（给用户更多时间）
-const HEARTBEAT_CHECK_INTERVAL = 30000; // 每30秒检查一次（减少检查频率）
+const HEARTBEAT_TIMEOUT = 120000; // 120秒无响应视为离线（更宽松的检测）
+const HEARTBEAT_CHECK_INTERVAL = 60000; // 每60秒检查一次（进一步减少检查频率）
 
-// 心跳检测 - 自动清理离线用户
-setInterval(async () => {
-  const now = Date.now();
-  const inactiveUsers = [];
-  
-  // 检查所有用户的心跳
-  for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
-    const timeSinceLastHeartbeat = now - lastHeartbeat;
-    
-    // 记录心跳状态，便于调试
-    if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT * 0.7) { // 超过70%超时时间时警告
-      const user = onlineUsers.get(userId);
-      console.log(`⚠️ 用户 ${user?.nickname || userId} 心跳延迟: ${Math.round(timeSinceLastHeartbeat/1000)}秒`);
-    }
-    
-    if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT) {
-      inactiveUsers.push(userId);
-    }
-  }
-  
-  // 清理离线用户
-  if (inactiveUsers.length > 0) {
-    console.log(`💔 检测到 ${inactiveUsers.length} 个离线用户，正在清理...`);
-    
-    for (const userId of inactiveUsers) {
-      const user = onlineUsers.get(userId);
-      if (user) {
-        const timeSinceLastHeartbeat = now - userHeartbeats.get(userId);
-        console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId}), 最后心跳: ${Math.round(timeSinceLastHeartbeat/1000)}秒前`);
-        
-        onlineUsers.delete(userId);
-        userHeartbeats.delete(userId);
-        
-        // 同时从PostgreSQL删除
-        await removeUser(userId);
-      }
-    }
-    
-    // 广播更新后的用户列表（节流）
-    broadcastUsersThrottled();
-  }
-  
-  // 定期记录当前状态，便于调试
-  if (onlineUsers.size > 0) {
-    console.log(`💓 心跳检测完成，当前在线: ${onlineUsers.size} 人`);
-  }
-}, HEARTBEAT_CHECK_INTERVAL);
+// 心跳检测 - 自动清理离线用户（临时禁用）
+// setInterval(async () => {
+//   const now = Date.now();
+//   const inactiveUsers = [];
+//   
+//   // 检查所有用户的心跳
+//   for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
+//     const timeSinceLastHeartbeat = now - lastHeartbeat;
+//     
+//     // 记录心跳状态，便于调试
+//     if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT * 0.8) { // 超过80%超时时间时警告
+//       const user = onlineUsers.get(userId);
+//       console.log(`⚠️ 用户 ${user?.nickname || userId} 心跳延迟: ${Math.round(timeSinceLastHeartbeat/1000)}秒`);
+//     }
+//     
+//     // 只有在确实超过超时时间时才标记为离线
+//     if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT) {
+//       inactiveUsers.push(userId);
+//     }
+//   }
+//   
+//   // 清理离线用户
+//   if (inactiveUsers.length > 0) {
+//     console.log(`💔 检测到 ${inactiveUsers.length} 个离线用户，正在清理...`);
+//     
+//     for (const userId of inactiveUsers) {
+//       const user = onlineUsers.get(userId);
+//       if (user) {
+//         const timeSinceLastHeartbeat = now - userHeartbeats.get(userId);
+//         console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId}), 最后心跳: ${Math.round(timeSinceLastHeartbeat/1000)}秒前`);
+//         
+//         onlineUsers.delete(userId);
+//         userHeartbeats.delete(userId);
+//         
+//         // 同时从PostgreSQL删除
+//         await removeUser(userId);
+//       }
+//     }
+//     
+//     // 广播更新后的用户列表（节流）
+//     broadcastUsersThrottled();
+//   }
+//   
+//   // 定期记录当前状态，便于调试
+//   if (onlineUsers.size > 0) {
+//     console.log(`💓 心跳检测完成，当前在线: ${onlineUsers.size} 人`);
+//   }
+// }, HEARTBEAT_CHECK_INTERVAL);
 
-console.log('✅ 心跳检测已启用，自动清理离线用户');
+// 临时禁用心跳检测，测试是否是心跳检测导致用户闪动问题
+console.log('⚠️ 心跳检测已临时禁用，用于调试用户闪动问题');
 console.log(`💓 心跳检测配置: 超时时间=${HEARTBEAT_TIMEOUT/1000}秒, 检查间隔=${HEARTBEAT_CHECK_INTERVAL/1000}秒`);
 
 // 定期强制清理无效用户（每30秒执行一次）

@@ -65,9 +65,26 @@ function HttpChatRoom() {
     });
     
     chatAPI.current.onUsers((userList) => {
-      // 直接更新用户列表，确保实时性
-      console.log(`📊 收到用户列表更新: ${userList.length} 人`, userList.map(u => u.nickname));
-      setUsers(userList);
+      // 智能更新用户列表，避免不必要的重新渲染
+      setUsers(prevUsers => {
+        // 比较用户列表是否真的发生了变化
+        const prevUserIds = prevUsers.map(u => u.id).sort();
+        const newUserIds = userList.map(u => u.id).sort();
+        const hasUserChange = JSON.stringify(prevUserIds) !== JSON.stringify(newUserIds);
+        
+        // 比较用户数量
+        const hasCountChange = prevUsers.length !== userList.length;
+        
+        if (hasUserChange || hasCountChange) {
+          console.log(`📊 用户列表发生变化: ${prevUsers.length} -> ${userList.length}`, 
+            `用户变化: ${hasUserChange ? '是' : '否'}, 数量变化: ${hasCountChange ? '是' : '否'}`);
+          console.log(`📊 新用户列表:`, userList.map(u => u.nickname));
+          return userList;
+        }
+        
+        // 没有变化，返回之前的状态，避免重新渲染
+        return prevUsers;
+      });
       
       // 检查当前用户是否还在用户列表中（仅记录日志，不自动重连）
       if (userInfoRef.current && isConnectedRef.current) {
