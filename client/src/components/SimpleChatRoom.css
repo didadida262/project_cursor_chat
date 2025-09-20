@@ -319,13 +319,13 @@
   }
 }
 
-/* 炫酷toast样式 - 暗色系配色 */
+/* 炫酷toast样式 - 暗色系融合配色 */
 .ant-notification-notice {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(34, 139, 34, 0.8) 50%, rgba(220, 20, 60, 0.8) 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(34, 139, 34, 0.6) 33%, rgba(0, 0, 0, 0.7) 66%, rgba(220, 20, 60, 0.6) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 12px !important;
   backdrop-filter: blur(10px) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
 }
 
 .ant-notification-notice-message {
@@ -340,9 +340,9 @@
 }
 
 .ant-notification-notice-success {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(34, 139, 34, 0.9) 50%, rgba(0, 100, 0, 0.9) 100%) !important;
-  border: 1px solid rgba(34, 139, 34, 0.6) !important;
-  box-shadow: 0 8px 32px rgba(34, 139, 34, 0.4) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(34, 139, 34, 0.6) 33%, rgba(0, 0, 0, 0.7) 66%, rgba(220, 20, 60, 0.6) 100%) !important;
+  border: 1px solid rgba(34, 139, 34, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(34, 139, 34, 0.3) !important;
 }
 
 .ant-notification-notice-success .ant-notification-notice-message {
@@ -351,9 +351,9 @@
 }
 
 .ant-notification-notice-info {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(70, 130, 180, 0.8) 50%, rgba(34, 139, 34, 0.8) 100%) !important;
-  border: 1px solid rgba(70, 130, 180, 0.6) !important;
-  box-shadow: 0 8px 32px rgba(70, 130, 180, 0.4) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(34, 139, 34, 0.6) 33%, rgba(0, 0, 0, 0.7) 66%, rgba(220, 20, 60, 0.6) 100%) !important;
+  border: 1px solid rgba(70, 130, 180, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(70, 130, 180, 0.3) !important;
 }
 
 .ant-notification-notice-info .ant-notification-notice-message {
@@ -362,9 +362,9 @@
 }
 
 .ant-notification-notice-warning {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(255, 165, 0, 0.8) 50%, rgba(255, 69, 0, 0.8) 100%) !important;
-  border: 1px solid rgba(255, 165, 0, 0.6) !important;
-  box-shadow: 0 8px 32px rgba(255, 165, 0, 0.4) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(34, 139, 34, 0.6) 33%, rgba(0, 0, 0, 0.7) 66%, rgba(220, 20, 60, 0.6) 100%) !important;
+  border: 1px solid rgba(255, 165, 0, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3) !important;
 }
 
 .ant-notification-notice-warning .ant-notification-notice-message {
@@ -373,9 +373,9 @@
 }
 
 .ant-notification-notice-error {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(220, 20, 60, 0.9) 50%, rgba(139, 0, 0, 0.9) 100%) !important;
-  border: 1px solid rgba(220, 20, 60, 0.6) !important;
-  box-shadow: 0 8px 32px rgba(220, 20, 60, 0.4) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(34, 139, 34, 0.6) 33%, rgba(0, 0, 0, 0.7) 66%, rgba(220, 20, 60, 0.6) 100%) !important;
+  border: 1px solid rgba(220, 20, 60, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(220, 20, 60, 0.3) !important;
 }
 
 .ant-notification-notice-error .ant-notification-notice-message {
