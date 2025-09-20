@@ -390,15 +390,31 @@
 
 .ant-modal-content {
   background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
 }
 
+.ant-modal-content,
+.ant-modal-content::before,
+.ant-modal-content::after {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
 .ant-modal-header {
   background: transparent !important;
+  background-color: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 12px 12px 0 0 !important;
+}
+
+.ant-modal-header,
+.ant-modal-body,
+.ant-modal-footer {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
 }
 
 .ant-modal-title {
@@ -460,4 +476,25 @@
   background: rgba(255, 255, 255, 0.2) !important;
   border-color: rgba(255, 255, 255, 0.5) !important;
   transform: translateY(-1px) !important;
+}
+
+/* 强制Modal背景透明度 */
+.ant-modal-mask {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+.ant-modal-wrap {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+/* 确保Modal内容背景透明 */
+.ant-modal .ant-modal-content {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* 覆盖可能的渐变背景 */
+.ant-modal-content[style*="background"] {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
 }
