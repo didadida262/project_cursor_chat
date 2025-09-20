@@ -661,22 +661,51 @@ app.post('/api/clear-users', async (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    // 直接使用内存中的用户列表，确保实时性
-    const memoryUsers = Array.from(onlineUsers.values());
-    
     console.log(`📊 [${serverInstanceId}] /api/users 请求`);
-    console.log(`📊 [${serverInstanceId}] 内存用户数量: ${memoryUsers.length}`);
-    console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
     console.log(`🔍 [${serverInstanceId}] 请求头:`, {
       'user-agent': req.get('user-agent'),
       'x-forwarded-for': req.get('x-forwarded-for'),
       'x-vercel-id': req.get('x-vercel-id')
     });
     
-    res.json(memoryUsers);
+    if (pool) {
+      // 优先从数据库获取用户列表，确保跨实例一致性
+      try {
+        const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
+        const dbUsers = dbResult.rows.map(row => ({
+          id: row.id,
+          nickname: row.nickname,
+          isOnline: row.is_online,
+          joinTime: row.join_time
+        }));
+        
+        console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length}`);
+        console.log(`📊 [${serverInstanceId}] 数据库用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+        
+        // 同时更新内存，保持同步
+        onlineUsers.clear();
+        userHeartbeats.clear();
+        for (const user of dbUsers) {
+          onlineUsers.set(user.id, user);
+          userHeartbeats.set(user.id, Date.now());
+        }
+        
+        res.json(dbUsers);
+      } catch (dbError) {
+        console.error(`❌ [${serverInstanceId}] 数据库查询失败:`, dbError);
+        // 数据库失败时回退到内存
+        const memoryUsers = Array.from(onlineUsers.values());
+        console.log(`📊 [${serverInstanceId}] 回退到内存用户数量: ${memoryUsers.length}`);
+        res.json(memoryUsers);
+      }
+    } else {
+      // 没有数据库连接时使用内存
+      const memoryUsers = Array.from(onlineUsers.values());
+      console.log(`📊 [${serverInstanceId}] 内存用户数量: ${memoryUsers.length}`);
+      res.json(memoryUsers);
+    }
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error.message);
-    // 出错时返回空数组
     res.json([]);
   }
 });
