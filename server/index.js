@@ -776,9 +776,18 @@ app.post('/api/heartbeat', async (req, res) => {
   res.json({ success: true });
 });
 
-// 发送消息API
+// 发送消息API - 完全基于数据库
 app.post('/api/message', async (req, res) => {
   const messageData = req.body;
+  
+  console.log(`📨 [${serverInstanceId}] 收到消息: ${messageData.nickname}: ${messageData.message}`);
+  console.log(`📊 [${serverInstanceId}] 发送者ID: ${messageData.userId}`);
+  
+  if (!pool) {
+    console.error(`❌ [${serverInstanceId}] 数据库未连接，无法发送消息`);
+    return res.status(500).json({ success: false, error: '数据库未连接' });
+  }
+  
   const message = {
     id: uuidv4(),
     userId: messageData.userId,
@@ -787,37 +796,31 @@ app.post('/api/message', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   
-  console.log(`📨 [${serverInstanceId}] 收到消息: ${message.nickname}: ${message.message}`);
-  console.log(`📊 [${serverInstanceId}] 发送者ID: ${messageData.userId}`);
-  
-  // 验证发送者是否在数据库中存在
-  let senderExists = false;
-  if (pool) {
-    try {
-      const result = await pool.query('SELECT id FROM users WHERE id = $1 AND is_online = true', [messageData.userId]);
-      senderExists = result.rows.length > 0;
-      console.log(`📊 [${serverInstanceId}] 发送者在数据库中: ${senderExists}`);
-    } catch (error) {
-      console.error(`❌ [${serverInstanceId}] 验证发送者失败:`, error);
+  try {
+    // 验证发送者是否在数据库中存在
+    const result = await pool.query('SELECT id FROM users WHERE id = $1 AND is_online = true', [messageData.userId]);
+    const senderExists = result.rows.length > 0;
+    console.log(`📊 [${serverInstanceId}] 发送者在数据库中: ${senderExists}`);
+    
+    if (!senderExists) {
+      console.error(`❌ [${serverInstanceId}] 发送者不在线: ${messageData.userId}`);
+      return res.status(400).json({ success: false, error: '用户不在线' });
     }
+    
+    // 保存消息
+    await saveMessage(message);
+    
+    // 更新发送者的心跳时间
+    await updateUserHeartbeat(messageData.userId);
+    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
+    
+    // 返回成功响应
+    res.json({ success: true, message });
+    console.log(`✅ [${serverInstanceId}] 消息发送成功响应已发送`);
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 消息发送失败:`, error);
+    res.status(500).json({ success: false, error: '消息发送失败' });
   }
-  
-  // 保存消息
-  await saveMessage(message);
-  
-  // 更新发送者的心跳时间（直接更新数据库，不依赖内存）
-  if (pool) {
-    try {
-      await updateUserHeartbeat(messageData.userId);
-      console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
-    } catch (error) {
-      console.error(`❌ [${serverInstanceId}] 更新心跳失败:`, error);
-    }
-  }
-  
-  // 立即返回响应
-  res.json({ success: true, message });
-  console.log(`✅ [${serverInstanceId}] 消息发送成功响应已发送`);
 });
 
 // Socket.io 连接处理
