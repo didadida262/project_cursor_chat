@@ -11,9 +11,6 @@ const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 // 生成用户ID的函数
-function generateUserId() {
-  return Math.random().toString(36).substring(2, 11);
-}
 
 function HttpChatRoom() {
   const { message } = App.useApp();

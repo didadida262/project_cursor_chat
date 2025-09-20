@@ -7,21 +7,6 @@ import './CurrentUserCard.css';
 const { Text } = Typography;
 
 // 用户Logo组件 - 使用buddy.svg
-const UserLogo = ({ user }) => {
-  return (
-    <div className="video-placeholder">
-      <img 
-        src={buddySvg} 
-        alt="User Avatar" 
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain'
-        }}
-      />
-    </div>
-  );
-};
 
 function CurrentUserCard({ 
   user,
@@ -309,7 +294,17 @@ function CurrentUserCard({
             playsInline
           />
         ) : (
-          <UserLogo user={user} />
+          <div className="video-placeholder">
+            <img 
+              src={buddySvg} 
+              alt="User Avatar" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
         )}
       </div>
       
