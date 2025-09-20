@@ -140,7 +140,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 2000); // 每2秒轮询一次，平衡实时性和服务器压力
+    }, 1000); // 每1秒轮询一次，提高消息实时性
   }
 
   // 停止轮询
@@ -198,18 +198,18 @@ class SimpleChatAPI {
         const result = await response.json();
         console.log('✅ 消息发送成功:', result);
         
-        // 消息发送成功后，立即获取一次用户列表，确保状态同步
+        // 消息发送成功后，立即获取一次消息列表，确保实时性
         try {
-          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
-          if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            console.log(`📊 消息发送后立即获取用户列表: ${users.length} 人`, users.map(u => u.nickname));
-            if (this.usersCallback) {
-              this.usersCallback(users);
+          const messagesResponse = await fetch(`${this.baseUrl}/api/messages`);
+          if (messagesResponse.ok) {
+            const messages = await messagesResponse.json();
+            console.log(`📨 消息发送后立即获取消息列表: ${messages.length} 条消息`);
+            if (this.messageCallback) {
+              this.messageCallback(messages);
             }
           }
         } catch (error) {
-          console.error('❌ 消息发送后获取用户列表失败:', error);
+          console.error('❌ 消息发送后获取消息列表失败:', error);
         }
         
         return true;

@@ -609,18 +609,20 @@ app.post('/api/join', async (req, res) => {
   console.log(`📊 [${serverInstanceId}] 加入前用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
   console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   
-  // 检查是否已存在相同昵称的用户（允许相同ID，因为可能是页面刷新）
-  const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
-  if (existingUser) {
-    // 如果存在相同昵称，删除现有用户（可能是页面刷新）
-    onlineUsers.delete(existingUser.id);
-    userHeartbeats.delete(existingUser.id);
+  // 检查是否已存在相同ID的用户（页面刷新情况）
+  const existingUserById = onlineUsers.get(userData.id);
+  if (existingUserById) {
+    // 如果存在相同ID，删除现有用户（页面刷新）
+    onlineUsers.delete(existingUserById.id);
+    userHeartbeats.delete(existingUserById.id);
     
     // 同时从PostgreSQL删除
-    await removeUser(existingUser.id);
+    await removeUser(existingUserById.id);
     
-    console.log(`🔄 用户重新加入（可能是页面刷新）: ${userData.nickname} (旧ID: ${existingUser.id}, 新ID: ${userData.id})`);
+    console.log(`🔄 用户重新加入（页面刷新）: ${userData.nickname} (ID: ${userData.id})`);
   }
+  
+  // 允许相同昵称的用户同时在线，不再检查昵称重复
   
   const user = {
     id: userData.id,
