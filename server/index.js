@@ -424,13 +424,9 @@ async function getAllOnlineUsers() {
     
     console.log(`💾 [${serverInstanceId}] 从PostgreSQL加载在线用户: ${dbUsers.length} 人`, dbUsers.map(u => u.nickname));
     
-    // 清理PostgreSQL中不在内存中的用户
-    for (const dbUser of dbUsers) {
-      if (!onlineUsers.has(dbUser.id)) {
-        await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
-        console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname}`);
-      }
-    }
+    // ⚠️ 注意：不清理PostgreSQL中的用户，因为Vercel serverless实例之间内存不共享
+    // 每个实例的onlineUsers都是独立的，不能基于内存状态删除数据库用户
+    console.log(`⚠️ [${serverInstanceId}] 跳过清理逻辑，避免在serverless环境中误删用户`);
     
     return dbUsers;
   } catch (error) {
