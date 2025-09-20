@@ -49,6 +49,7 @@ function HttpChatRoom() {
   // 初始化聊天API - 使用 useRef 确保只创建一次
   const chatAPIInitialized = useRef(false);
   
+  // 初始化聊天API
   useEffect(() => {
     if (chatAPIInitialized.current) return;
     chatAPIInitialized.current = true;
@@ -71,6 +72,17 @@ function HttpChatRoom() {
       console.log(`📊 收到用户列表更新: ${userList.length} 人`, userList.map(u => u.nickname));
       setUsers(userList);
     });
+  }, []);
+
+  // 页面事件监听器 - 只在用户连接后添加
+  useEffect(() => {
+    // 只在用户连接后才添加事件监听器
+    if (!isConnected || !userInfo) {
+      console.log('📡 用户未连接，跳过添加事件监听器');
+      return;
+    }
+
+    console.log('📡 用户已连接，添加页面事件监听器');
 
     // 页面卸载时自动离开
     const handleBeforeUnload = (event) => {
@@ -97,6 +109,8 @@ function HttpChatRoom() {
 
     // 页面隐藏时也离开（移动端切换应用时）
     const handleVisibilityChange = () => {
+      console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
+      // 只有在页面真正隐藏且用户已连接时才离开
       if (document.hidden && userInfoRef.current && isConnectedRef.current) {
         console.log('👁️ 页面隐藏，开始离开聊天室');
         chatAPI.current.disconnect('page_refresh'); // 传递页面刷新的原因
@@ -131,7 +145,7 @@ function HttpChatRoom() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, []); // 空依赖数组，只在组件挂载时执行一次
+  }, [isConnected, userInfo]); // 依赖用户连接状态，只在用户连接后添加事件监听器
 
   // 页面卸载时断开连接的单独 useEffect
   useEffect(() => {
