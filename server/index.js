@@ -230,33 +230,34 @@ console.log('⚠️ 心跳检测已临时禁用，用于调试用户闪动问题
 console.log(`💓 心跳检测配置: 超时时间=${HEARTBEAT_TIMEOUT/1000}秒, 检查间隔=${HEARTBEAT_CHECK_INTERVAL/1000}秒`);
 
 // 定期强制清理无效用户（每30秒执行一次）
-setInterval(async () => {
-  console.log('🧹 开始定期清理无效用户...');
-  
-  // 清理内存中无效的心跳记录
-  const now = Date.now();
-  const invalidHeartbeats = [];
-  
-  for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
-    if (now - lastHeartbeat > HEARTBEAT_TIMEOUT * 2) { // 超过2倍超时时间
-      invalidHeartbeats.push(userId);
-    }
-  }
-  
-  for (const userId of invalidHeartbeats) {
-    const user = onlineUsers.get(userId);
-    if (user) {
-      onlineUsers.delete(userId);
-      userHeartbeats.delete(userId);
-      await removeUser(userId);
-      console.log(`🧹 强制清理无效用户: ${user.nickname} (ID: ${userId})`);
-    }
-  }
-  
-  if (invalidHeartbeats.length > 0) {
-    console.log(`🧹 定期清理完成，清理了 ${invalidHeartbeats.length} 个无效用户`);
-  }
-}, 30000); // 每30秒执行一次
+// 暂时禁用定期清理，避免误删用户
+// setInterval(async () => {
+//   console.log('🧹 开始定期清理无效用户...');
+//   
+//   // 清理内存中无效的心跳记录
+//   const now = Date.now();
+//   const invalidHeartbeats = [];
+//   
+//   for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
+//     if (now - lastHeartbeat > HEARTBEAT_TIMEOUT * 2) { // 超过2倍超时时间
+//       invalidHeartbeats.push(userId);
+//     }
+//   }
+//   
+//   for (const userId of invalidHeartbeats) {
+//     const user = onlineUsers.get(userId);
+//     if (user) {
+//       onlineUsers.delete(userId);
+//       userHeartbeats.delete(userId);
+//       await removeUser(userId);
+//       console.log(`🧹 强制清理无效用户: ${user.nickname} (ID: ${userId})`);
+//     }
+//   }
+//   
+//   if (invalidHeartbeats.length > 0) {
+//     console.log(`🧹 定期清理完成，清理了 ${invalidHeartbeats.length} 个无效用户`);
+//   }
+// }, 30000); // 每30秒执行一次
 
 // 消息存储相关的辅助函数
 const HISTORY_LIMIT = 50;
@@ -570,10 +571,20 @@ app.get('/api/users', async (req, res) => {
     console.log(`📊 [${serverInstanceId}] API请求用户列表`);
     console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
+    console.log(`📊 [${serverInstanceId}] onlineUsers Map大小: ${onlineUsers.size}`);
+    console.log(`📊 [${serverInstanceId}] userHeartbeats Map大小: ${userHeartbeats.size}`);
+    
+    // 如果用户列表为空，记录详细信息
+    if (memoryUsers.length === 0) {
+      console.warn(`⚠️ [${serverInstanceId}] 用户列表为空！这可能表示服务器重启或内存被清空`);
+      console.warn(`⚠️ [${serverInstanceId}] onlineUsers Map内容:`, Array.from(onlineUsers.entries()));
+      console.warn(`⚠️ [${serverInstanceId}] userHeartbeats Map内容:`, Array.from(userHeartbeats.entries()));
+    }
     
     res.json(memoryUsers);
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error);
+    console.error(`❌ [${serverInstanceId}] 错误详情:`, error.message);
     // 出错时返回空数组
     res.json([]);
   }
@@ -685,20 +696,28 @@ app.post('/api/message', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   
+  console.log(`📨 [${serverInstanceId}] 收到消息发送请求: ${message.nickname}: ${message.message}`);
+  console.log(`📊 [${serverInstanceId}] 发送消息前在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 [${serverInstanceId}] 发送消息前用户列表:`, Array.from(onlineUsers.values()).map(u => u.nickname));
+  
   // 保存消息
   await saveMessage(message);
-  
-  console.log(`📨 通过API收到消息: ${message.nickname}: ${message.message}`);
   
   // 更新发送者的心跳时间
   if (userHeartbeats.has(messageData.userId)) {
     userHeartbeats.set(messageData.userId, Date.now());
+    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
+  } else {
+    console.warn(`⚠️ [${serverInstanceId}] 发送者不在心跳记录中: ${messageData.userId}`);
   }
+  
+  console.log(`📊 [${serverInstanceId}] 发送消息后在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 [${serverInstanceId}] 发送消息后用户列表:`, Array.from(onlineUsers.values()).map(u => u.nickname));
   
   // 立即返回响应，不等待数据库保存完成
   res.json({ success: true, message });
   
-  console.log(`✅ 消息API响应已发送`);
+  console.log(`✅ [${serverInstanceId}] 消息API响应已发送`);
 });
 
 // Socket.io 连接处理
