@@ -568,23 +568,14 @@ app.get('/api/users', async (req, res) => {
     // 直接使用内存中的用户列表，确保实时性
     const memoryUsers = Array.from(onlineUsers.values());
     
-    console.log(`📊 [${serverInstanceId}] API请求用户列表`);
-    console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
-    console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
-    console.log(`📊 [${serverInstanceId}] onlineUsers Map大小: ${onlineUsers.size}`);
-    console.log(`📊 [${serverInstanceId}] userHeartbeats Map大小: ${userHeartbeats.size}`);
-    
-    // 如果用户列表为空，记录详细信息
+    // 简化日志，只在用户数量变化时记录
     if (memoryUsers.length === 0) {
-      console.warn(`⚠️ [${serverInstanceId}] 用户列表为空！这可能表示服务器重启或内存被清空`);
-      console.warn(`⚠️ [${serverInstanceId}] onlineUsers Map内容:`, Array.from(onlineUsers.entries()));
-      console.warn(`⚠️ [${serverInstanceId}] userHeartbeats Map内容:`, Array.from(userHeartbeats.entries()));
+      console.warn(`⚠️ [${serverInstanceId}] 用户列表为空！`);
     }
     
     res.json(memoryUsers);
   } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error);
-    console.error(`❌ [${serverInstanceId}] 错误详情:`, error.message);
+    console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error.message);
     // 出错时返回空数组
     res.json([]);
   }
@@ -698,9 +689,7 @@ app.post('/api/message', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   
-  console.log(`📨 [${serverInstanceId}] 收到消息发送请求: ${message.nickname}: ${message.message}`);
-  console.log(`📊 [${serverInstanceId}] 发送消息前在线用户: ${onlineUsers.size} 人`);
-  console.log(`📊 [${serverInstanceId}] 发送消息前用户列表:`, Array.from(onlineUsers.values()).map(u => u.nickname));
+  console.log(`📨 [${serverInstanceId}] 收到消息: ${message.nickname}: ${message.message}`);
   
   // 保存消息
   await saveMessage(message);
@@ -708,18 +697,10 @@ app.post('/api/message', async (req, res) => {
   // 更新发送者的心跳时间
   if (userHeartbeats.has(messageData.userId)) {
     userHeartbeats.set(messageData.userId, Date.now());
-    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
-  } else {
-    console.warn(`⚠️ [${serverInstanceId}] 发送者不在心跳记录中: ${messageData.userId}`);
   }
   
-  console.log(`📊 [${serverInstanceId}] 发送消息后在线用户: ${onlineUsers.size} 人`);
-  console.log(`📊 [${serverInstanceId}] 发送消息后用户列表:`, Array.from(onlineUsers.values()).map(u => u.nickname));
-  
-  // 立即返回响应，不等待数据库保存完成
+  // 立即返回响应
   res.json({ success: true, message });
-  
-  console.log(`✅ [${serverInstanceId}] 消息API响应已发送`);
 });
 
 // Socket.io 连接处理

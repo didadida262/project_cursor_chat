@@ -140,7 +140,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 1000); // 每1秒轮询一次，提高消息实时性
+    }, 3000); // 每3秒轮询一次，减少闪烁问题
   }
 
   // 停止轮询
