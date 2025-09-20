@@ -80,10 +80,10 @@ function HttpChatRoom() {
         const newUsers = userList.filter(user => !previousUserIds.has(user.id));
         newUsers.forEach(user => {
           notification.success({
-            message: '用户加入',
-            description: `🎉 ${user.nickname} 加入了聊天室`,
+            message: '🚀 新用户加入',
+            description: `✨ ${user.nickname} 闪亮登场！`,
             placement: 'topRight',
-            duration: 3,
+            duration: 4,
           });
         });
         
@@ -91,10 +91,10 @@ function HttpChatRoom() {
         const leftUsers = previousUsers.filter(user => !currentUserIds.has(user.id));
         leftUsers.forEach(user => {
           notification.info({
-            message: '用户离开',
-            description: `👋 ${user.nickname} 离开了聊天室`,
+            message: '👋 用户离线',
+            description: `💫 ${user.nickname} 已离开聊天室`,
             placement: 'topRight',
-            duration: 3,
+            duration: 4,
           });
         });
       } else {
@@ -200,10 +200,10 @@ function HttpChatRoom() {
       if (nicknameCheck.exists) {
         // 昵称已存在，显示警告
         notification.warning({
-          message: '昵称已存在',
-          description: nicknameCheck.message,
+          message: '⚠️ 昵称冲突',
+          description: `💥 ${nicknameCheck.message}`,
           placement: 'topRight',
-          duration: 4,
+          duration: 5,
         });
         console.log('⚠️ 昵称已存在:', nicknameCheck.message);
         return;
@@ -212,10 +212,10 @@ function HttpChatRoom() {
       if (nicknameCheck.error) {
         // 检查过程中发生错误
         notification.error({
-          message: '昵称检查失败',
-          description: nicknameCheck.error,
+          message: '❌ 检查失败',
+          description: `💔 ${nicknameCheck.error}`,
           placement: 'topRight',
-          duration: 4,
+          duration: 5,
         });
         console.error('❌ 昵称检查失败:', nicknameCheck.error);
         return;
@@ -240,10 +240,10 @@ function HttpChatRoom() {
         setShowNicknameInput(false);
         
         notification.success({
-          message: '加入成功',
-          description: `欢迎 ${user.nickname}！`,
+          message: '🎊 加入成功',
+          description: `🌟 欢迎 ${user.nickname} 进入聊天室！`,
           placement: 'topRight',
-          duration: 3,
+          duration: 4,
         });
         console.log('✅ 成功加入聊天室');
         
@@ -263,10 +263,10 @@ function HttpChatRoom() {
       } else {
         // 连接失败，不更新本地状态
         notification.error({
-          message: '加入失败',
-          description: '加入聊天室失败，请重试',
+          message: '💥 加入失败',
+          description: '😢 加入聊天室失败，请重试',
           placement: 'topRight',
-          duration: 4,
+          duration: 5,
         });
         console.error('❌ 加入聊天室失败');
       }
@@ -299,10 +299,10 @@ function HttpChatRoom() {
         // 发送失败时恢复输入框内容
         setCurrentMessage(messageText);
         notification.error({
-          message: '发送失败',
-          description: '消息发送失败，请重试',
+          message: '💥 发送失败',
+          description: '😢 消息发送失败，请重试',
           placement: 'topRight',
-          duration: 4,
+          duration: 5,
         });
         console.error('❌ 消息发送失败');
       }
@@ -313,10 +313,10 @@ function HttpChatRoom() {
         isConnected: isConnected
       });
       notification.error({
-        message: '发送失败',
-        description: '消息发送失败，请重试',
+        message: '💥 发送失败',
+        description: '😢 消息发送失败，请重试',
         placement: 'topRight',
-        duration: 4,
+        duration: 5,
       });
     }
   };
@@ -398,7 +398,18 @@ function HttpChatRoom() {
         <Sider width="70%" className="users-sidebar">
           <div className="users-header">
             <Title level={4} style={{ color: '#ffffff', margin: 0 }}>
-              在线用户 ({users.filter(user => user.id !== userInfo?.id).length + 1})
+              <span style={{ 
+                background: 'linear-gradient(45deg, #00d4ff, #ff00d4, #00ff88)',
+                backgroundSize: '200% 200%',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                animation: 'gradientShift 3s ease infinite',
+                fontWeight: 'bold',
+                textShadow: '0 0 20px rgba(0, 212, 255, 0.5)'
+              }}>
+                🔥 在线用户 {users.filter(user => user.id !== userInfo?.id).length + 1} 人
+              </span>
             </Title>
           </div>
           

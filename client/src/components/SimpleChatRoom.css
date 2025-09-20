@@ -305,3 +305,80 @@
     max-height: calc(100vh - 280px);
   }
 }
+
+/* 炫酷渐变动画 */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 炫酷toast样式 */
+.ant-notification-notice {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(255, 0, 212, 0.1) 100%) !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3) !important;
+}
+
+.ant-notification-notice-message {
+  color: #00d4ff !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5) !important;
+}
+
+.ant-notification-notice-description {
+  color: #ffffff !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3) !important;
+}
+
+.ant-notification-notice-success {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%) !important;
+  border: 1px solid rgba(0, 255, 136, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3) !important;
+}
+
+.ant-notification-notice-success .ant-notification-notice-message {
+  color: #00ff88 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5) !important;
+}
+
+.ant-notification-notice-info {
+  background: linear-gradient(135deg, rgba(255, 0, 212, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%) !important;
+  border: 1px solid rgba(255, 0, 212, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(255, 0, 212, 0.3) !important;
+}
+
+.ant-notification-notice-info .ant-notification-notice-message {
+  color: #ff00d4 !important;
+  text-shadow: 0 0 10px rgba(255, 0, 212, 0.5) !important;
+}
+
+.ant-notification-notice-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%) !important;
+  border: 1px solid rgba(255, 193, 7, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(255, 193, 7, 0.3) !important;
+}
+
+.ant-notification-notice-warning .ant-notification-notice-message {
+  color: #ffc107 !important;
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.5) !important;
+}
+
+.ant-notification-notice-error {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 0, 0, 0.1) 100%) !important;
+  border: 1px solid rgba(255, 107, 107, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3) !important;
+}
+
+.ant-notification-notice-error .ant-notification-notice-message {
+  color: #ff6b6b !important;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.5) !important;
+}
