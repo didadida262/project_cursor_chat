@@ -146,13 +146,36 @@ function HttpChatRoom() {
   // 加入聊天室
   const handleJoinChat = async () => {
     if (nickname.trim()) {
+      const trimmedNickname = nickname.trim();
+      
+      console.log('🚀 用户尝试加入聊天室:', trimmedNickname);
+      
+      // 先检查昵称是否已存在
+      console.log('🔍 开始检查昵称是否已存在...');
+      const nicknameCheck = await chatAPI.current.checkNickname(trimmedNickname);
+      
+      if (nicknameCheck.exists) {
+        // 昵称已存在，显示警告
+        message.warning(nicknameCheck.message);
+        console.log('⚠️ 昵称已存在:', nicknameCheck.message);
+        return;
+      }
+      
+      if (nicknameCheck.error) {
+        // 检查过程中发生错误
+        message.error(nicknameCheck.error);
+        console.error('❌ 昵称检查失败:', nicknameCheck.error);
+        return;
+      }
+      
+      // 昵称可用，继续加入聊天室
       const user = {
         id: generateUserId(),
-        nickname: nickname.trim(),
+        nickname: trimmedNickname,
         timestamp: new Date().toISOString()
       };
 
-      console.log('🚀 用户尝试加入聊天室:', user);
+      console.log('✅ 昵称检查通过，开始连接聊天室:', user);
       
       // 先尝试连接，成功后再更新本地状态
       const success = await chatAPI.current.connect(user);

@@ -548,6 +548,48 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// 检查昵称是否已存在
+app.post('/api/check-nickname', async (req, res) => {
+  try {
+    const { nickname } = req.body;
+    
+    if (!nickname || !nickname.trim()) {
+      return res.json({ 
+        exists: false, 
+        error: '昵称不能为空' 
+      });
+    }
+    
+    const trimmedNickname = nickname.trim();
+    
+    // 检查内存中是否存在相同昵称的用户
+    const existingUser = Array.from(onlineUsers.values()).find(u => 
+      u.nickname.toLowerCase() === trimmedNickname.toLowerCase()
+    );
+    
+    if (existingUser) {
+      console.log(`⚠️ [${serverInstanceId}] 昵称已存在: ${trimmedNickname} (用户ID: ${existingUser.id})`);
+      return res.json({ 
+        exists: true, 
+        message: `昵称"${trimmedNickname}"已被使用，请选择其他昵称` 
+      });
+    }
+    
+    console.log(`✅ [${serverInstanceId}] 昵称可用: ${trimmedNickname}`);
+    res.json({ 
+      exists: false, 
+      message: '昵称可用' 
+    });
+    
+  } catch (error) {
+    console.error('❌ 检查昵称失败:', error);
+    res.status(500).json({ 
+      exists: false, 
+      error: '检查昵称时发生错误' 
+    });
+  }
+});
+
 // 检查数据库用户数据
 app.get('/api/db-users', async (req, res) => {
   try {

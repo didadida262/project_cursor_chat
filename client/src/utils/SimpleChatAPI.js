@@ -12,6 +12,44 @@ class SimpleChatAPI {
     this.usersUpdateThrottle = 1000; // 1秒内只更新一次用户列表
   }
 
+  // 检查昵称是否已存在
+  async checkNickname(nickname) {
+    try {
+      console.log('🔍 检查昵称是否已存在:', nickname);
+      
+      const response = await fetch(`${this.baseUrl}/api/check-nickname`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nickname })
+      });
+
+      console.log('📨 昵称检查响应:', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText 
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ 昵称检查结果:', result);
+        return result;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ 昵称检查失败:', { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorText 
+        });
+        return { exists: false, error: '检查昵称时发生错误' };
+      }
+    } catch (error) {
+      console.error('❌ 昵称检查网络错误:', error);
+      return { exists: false, error: '网络连接错误' };
+    }
+  }
+
   // 连接聊天室
   async connect(userData) {
     console.log('🔗 尝试连接到聊天室:', { userData, baseUrl: this.baseUrl });
