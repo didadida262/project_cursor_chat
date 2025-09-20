@@ -322,6 +322,93 @@ async function removeUser(userId) {
   }
 }
 
+// 保存消息函数
+async function saveMessage(messageData) {
+  try {
+    console.log(`💾 [${serverInstanceId}] saveMessage被调用，保存消息: ${messageData.nickname}: ${messageData.message}`);
+    if (pool) {
+      console.log(`💾 [${serverInstanceId}] 开始保存消息到PostgreSQL:`, messageData);
+      
+      // 先确保表存在
+      await ensureTablesExist();
+      
+      const result = await pool.query(
+        `INSERT INTO messages (id, user_id, nickname, message, timestamp) 
+         VALUES ($1, $2, $3, $4, $5) 
+         RETURNING *`,
+        [
+          messageData.id,
+          messageData.userId,
+          messageData.nickname,
+          messageData.message,
+          messageData.timestamp || new Date()
+        ]
+      );
+      console.log(`💾 [${serverInstanceId}] 消息已保存到PostgreSQL: ${messageData.nickname}`, result.rows[0]);
+    } else {
+      console.log(`💾 [${serverInstanceId}] PostgreSQL未连接，跳过保存消息`);
+    }
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 保存消息到PostgreSQL失败:`, error);
+    // 如果表不存在，尝试创建表
+    if (error.message.includes('relation') && error.message.includes('does not exist')) {
+      console.log(`🔄 [${serverInstanceId}] 检测到表不存在，尝试创建表...`);
+      await initDatabase();
+    }
+  }
+}
+
+// 更新用户心跳函数
+async function updateUserHeartbeat(userId) {
+  try {
+    console.log(`💓 [${serverInstanceId}] updateUserHeartbeat被调用，用户ID: ${userId}`);
+    if (pool) {
+      console.log(`💓 [${serverInstanceId}] 开始更新用户心跳到PostgreSQL: ${userId}`);
+      
+      const result = await pool.query(
+        'UPDATE users SET last_heartbeat = CURRENT_TIMESTAMP WHERE id = $1',
+        [userId]
+      );
+      console.log(`💓 [${serverInstanceId}] 心跳更新结果: ${result.rowCount} 行被更新`);
+    } else {
+      console.log(`💓 [${serverInstanceId}] PostgreSQL未连接，跳过更新心跳`);
+    }
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 更新用户心跳失败:`, error);
+  }
+}
+
+// 获取消息函数
+async function getMessages() {
+  try {
+    console.log(`📨 [${serverInstanceId}] getMessages被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
+    if (pool) {
+      console.log(`📨 [${serverInstanceId}] 开始从PostgreSQL获取消息`);
+      
+      const result = await pool.query(
+        'SELECT * FROM messages ORDER BY timestamp ASC LIMIT 50'
+      );
+      
+      const messages = result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        nickname: row.nickname,
+        message: row.message,
+        timestamp: row.timestamp
+      }));
+      
+      console.log(`📨 [${serverInstanceId}] 从数据库获取到 ${messages.length} 条消息`);
+      return messages;
+    } else {
+      console.log(`📨 [${serverInstanceId}] PostgreSQL未连接，返回空消息列表`);
+      return [];
+    }
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 获取消息失败:`, error);
+    return [];
+  }
+}
+
 
 async function getAllOnlineUsers() {
   try {
