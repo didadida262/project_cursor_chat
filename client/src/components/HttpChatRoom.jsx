@@ -27,6 +27,7 @@ function HttpChatRoom() {
   const isConnectedRef = useRef(false);
   const previousUsersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
+  const modalVisibleRef = useRef(false);
 
   // 保持 ref 与 state 同步
   useEffect(() => {
@@ -124,9 +125,12 @@ function HttpChatRoom() {
 
     // 页面卸载时显示确认弹窗
     const handleBeforeUnload = (event) => {
-      if (userInfoRef.current && isConnectedRef.current && !isLeaving) {
+      if (userInfoRef.current && isConnectedRef.current && !isLeaving && !modalVisibleRef.current) {
         event.preventDefault();
         event.returnValue = '';
+        
+        modalVisibleRef.current = true;
+        console.log('🚪 显示离开确认弹框');
         
         Modal.confirm({
           title: '🚪 确认离开聊天室',
@@ -169,11 +173,13 @@ function HttpChatRoom() {
               });
             } finally {
               setIsLeaving(false);
+              modalVisibleRef.current = false;
             }
           },
           onCancel: () => {
             // 用户点击取消，不做任何操作，弹框消失
             console.log('🚪 用户取消离开聊天室');
+            modalVisibleRef.current = false;
           }
         });
       }
@@ -183,9 +189,10 @@ function HttpChatRoom() {
     const handleVisibilityChange = () => {
       console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
       // 只有在页面真正隐藏且用户已连接时才显示确认
-      if (document.hidden && userInfoRef.current && isConnectedRef.current && !isLeaving) {
+      if (document.hidden && userInfoRef.current && isConnectedRef.current && !isLeaving && !modalVisibleRef.current) {
         console.log('👁️ 页面隐藏，显示离开确认弹窗');
         
+        modalVisibleRef.current = true;
         Modal.confirm({
           title: '🔄 确认离开聊天室',
           content: '页面即将隐藏，确定要离开聊天室吗？',
@@ -226,11 +233,13 @@ function HttpChatRoom() {
               });
             } finally {
               setIsLeaving(false);
+              modalVisibleRef.current = false;
             }
           },
           onCancel: () => {
             // 用户点击取消，不做任何操作，弹框消失
             console.log('👁️ 用户取消离开聊天室');
+            modalVisibleRef.current = false;
           }
         });
       }
