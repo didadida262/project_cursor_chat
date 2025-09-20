@@ -124,23 +124,8 @@ function HttpChatRoom() {
     // 页面卸载时自动离开
     const handleBeforeUnload = (event) => {
       if (userInfoRef.current && isConnectedRef.current) {
-        // 使用 sendBeacon 确保请求能够发送，传递关闭标签的原因
-        const data = JSON.stringify({ userId: userInfoRef.current.id, reason: 'tab_close' });
-        const success = navigator.sendBeacon(`${baseUrl}/api/leave`, data);
-        console.log('🚪 页面卸载，自动离开聊天室', success ? '成功' : '失败', '原因: tab_close');
-        
-        // 如果 sendBeacon 失败，尝试同步请求
-        if (!success) {
-          try {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${baseUrl}/api/leave`, false); // 同步请求
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(data);
-            console.log('🚪 同步请求离开聊天室完成，原因: tab_close');
-          } catch (error) {
-            console.error('🚪 同步请求失败:', error);
-          }
-        }
+        console.log('🚪 页面卸载，准备离开聊天室，原因: tab_close');
+        chatAPI.current.disconnect('tab_close'); // 使用统一的 disconnect 方法
       }
     };
 
@@ -149,7 +134,7 @@ function HttpChatRoom() {
       console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
       // 只有在页面真正隐藏且用户已连接时才离开
       if (document.hidden && userInfoRef.current && isConnectedRef.current) {
-        console.log('👁️ 页面隐藏，开始离开聊天室');
+        console.log('👁️ 页面隐藏，准备离开聊天室，原因: page_refresh');
         chatAPI.current.disconnect('page_refresh'); // 传递页面刷新的原因
         console.log('👁️ 页面隐藏，离开聊天室完成');
       }
@@ -189,6 +174,7 @@ function HttpChatRoom() {
     return () => {
       // 只在组件真正卸载时断开连接
       if (chatAPI.current) {
+        console.log('🧹 组件卸载，准备离开聊天室，原因: back_to_input');
         chatAPI.current.disconnect('back_to_input'); // 传递返回输入页面的原因
       }
     };
