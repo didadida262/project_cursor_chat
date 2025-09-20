@@ -57,8 +57,7 @@ async function initDatabase() {
         id VARCHAR(255) PRIMARY KEY,
         nickname VARCHAR(255) NOT NULL,
         is_online BOOLEAN DEFAULT true,
-        join_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        join_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('✅ users表创建成功');
@@ -274,21 +273,19 @@ async function saveUser(userData) {
       await ensureTablesExist();
       
       const result = await pool.query(
-        `INSERT INTO users (id, nickname, is_online, join_time, last_heartbeat) 
-         VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO users (id, nickname, is_online, join_time) 
+         VALUES ($1, $2, $3, $4) 
          ON CONFLICT (id) 
          DO UPDATE SET 
            nickname = EXCLUDED.nickname,
            is_online = EXCLUDED.is_online,
-           join_time = EXCLUDED.join_time,
-           last_heartbeat = EXCLUDED.last_heartbeat
+           join_time = EXCLUDED.join_time
          RETURNING *`,
         [
           userData.id,
           userData.nickname,
           true,
-          userData.joinTime || new Date(),
-          new Date()
+          userData.joinTime || new Date()
         ]
       );
       console.log(`💾 [${serverInstanceId}] 用户状态已保存到PostgreSQL: ${userData.nickname}`, result.rows[0]);
@@ -359,24 +356,6 @@ async function saveMessage(messageData) {
 }
 
 // 更新用户心跳函数
-async function updateUserHeartbeat(userId) {
-  try {
-    console.log(`💓 [${serverInstanceId}] updateUserHeartbeat被调用，用户ID: ${userId}`);
-    if (pool) {
-      console.log(`💓 [${serverInstanceId}] 开始更新用户心跳到PostgreSQL: ${userId}`);
-      
-      const result = await pool.query(
-        'UPDATE users SET last_heartbeat = CURRENT_TIMESTAMP WHERE id = $1',
-        [userId]
-      );
-      console.log(`💓 [${serverInstanceId}] 心跳更新结果: ${result.rowCount} 行被更新`);
-    } else {
-      console.log(`💓 [${serverInstanceId}] PostgreSQL未连接，跳过更新心跳`);
-    }
-  } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 更新用户心跳失败:`, error);
-  }
-}
 
 // 获取消息函数
 async function getMessages() {
@@ -426,13 +405,12 @@ async function getAllOnlineUsers() {
     // 先确保表存在
     await ensureTablesExist();
     
-    const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
+    const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
     const dbUsers = result.rows.map(row => ({
       id: row.id,
       nickname: row.nickname,
       isOnline: row.is_online,
-      joinTime: row.join_time,
-      lastHeartbeat: row.last_heartbeat
+      joinTime: row.join_time
     }));
     
     console.log(`💾 [${serverInstanceId}] 从PostgreSQL加载在线用户: ${dbUsers.length} 人`, dbUsers.map(u => u.nickname));
@@ -816,26 +794,6 @@ app.post('/api/leave', async (req, res) => {
 });
 
 // 心跳API - 完全基于数据库
-app.post('/api/heartbeat', async (req, res) => {
-  const { userId } = req.body;
-  
-  console.log(`💓 [${serverInstanceId}] 收到用户心跳: ${userId}`);
-  
-  if (!pool) {
-    console.error(`❌ [${serverInstanceId}] 数据库未连接，无法处理心跳`);
-    return res.status(500).json({ success: false, error: '数据库未连接' });
-  }
-  
-  try {
-    // 直接更新数据库心跳时间
-    await updateUserHeartbeat(userId);
-    console.log(`✅ [${serverInstanceId}] 心跳更新成功: ${userId}`);
-  } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 心跳更新失败:`, error);
-  }
-  
-  res.json({ success: true });
-});
 
 // 发送消息API - 完全基于数据库
 app.post('/api/message', async (req, res) => {
@@ -881,9 +839,6 @@ app.post('/api/message', async (req, res) => {
     // 保存消息
     await saveMessage(message);
     
-    // 更新发送者的心跳时间
-    await updateUserHeartbeat(messageData.userId);
-    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
     
     // 返回成功响应
     res.json({ success: true, message });
