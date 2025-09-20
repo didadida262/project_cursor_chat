@@ -498,3 +498,49 @@
   background: rgba(0, 0, 0, 0.8) !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
 }
+
+/* 自定义透明Modal样式 */
+.custom-modal-transparent .ant-modal-content {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.custom-modal-transparent .ant-modal-header {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.custom-modal-transparent .ant-modal-body {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
+}
+
+.custom-modal-transparent .ant-modal-footer {
+  background: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+.custom-modal-transparent .ant-modal-title {
+  color: #ffffff !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
+}
+
+.custom-modal-transparent .ant-modal-confirm-body .ant-modal-confirm-title {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
+}
+
+.custom-modal-transparent .ant-modal-confirm-body .ant-modal-confirm-content {
+  color: #ffffff !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
+}

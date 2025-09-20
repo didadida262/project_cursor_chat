@@ -138,6 +138,7 @@ function HttpChatRoom() {
           okText: '确认离开',
           cancelText: '取消',
           okType: 'danger',
+          className: 'custom-modal-transparent',
           onOk: async () => {
             setIsLeaving(true);
             console.log('🚪 用户确认离开，开始删除用户数据...');
@@ -199,6 +200,7 @@ function HttpChatRoom() {
           okText: '确认离开',
           cancelText: '取消',
           okType: 'danger',
+          className: 'custom-modal-transparent',
           onOk: async () => {
             setIsLeaving(true);
             console.log('👁️ 用户确认离开，开始删除用户数据...');
