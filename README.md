@@ -29,16 +29,8 @@
 
 ## 快速开始
 
-### 1. 配置数据库环境
-**重要**：本地开发环境现在使用与线上一致的Neon PostgreSQL数据库。
-
-详细配置步骤请参考：[LOCAL_SETUP.md](./LOCAL_SETUP.md)
-
-#### 快速配置：
-```bash
-# 设置Neon数据库连接字符串
-export DATABASE_URL='postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require'
-```
+### 1. 数据库配置
+**✅ 已完成**：本地开发环境已内置Neon PostgreSQL数据库配置，无需额外设置。
 
 ### 2. 安装依赖
 

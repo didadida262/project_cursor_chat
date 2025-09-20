@@ -10,7 +10,7 @@ const app = express();
 const server = createServer(app);
 
 // PostgreSQL (Neon) 连接
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://neondb_owner:npg_7usTCodpVN9L@ep-patient-mud-adrmrp5k-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 console.log(`🔍 PostgreSQL URI检查: ${DATABASE_URL ? '已设置' : '未设置'}`);
 console.log(`🔍 环境变量DATABASE_URL: ${process.env.DATABASE_URL ? '已设置' : '未设置'}`);

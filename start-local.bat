@@ -2,21 +2,7 @@
 echo 🚀 启动本地开发环境（使用Neon数据库）
 echo.
 
-REM 检查环境变量
-if "%DATABASE_URL%"=="" (
-    echo ❌ 错误：未设置 DATABASE_URL 环境变量
-    echo.
-    echo 请设置你的Neon数据库连接字符串：
-    echo set DATABASE_URL=postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
-    echo.
-    echo 或者创建 .env.local 文件并添加：
-    echo DATABASE_URL=你的Neon数据库连接字符串
-    echo.
-    pause
-    exit /b 1
-)
-
-echo ✅ DATABASE_URL 已设置
+echo ✅ 使用项目内置的Neon数据库配置
 echo.
 
 REM 启动服务器

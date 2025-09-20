@@ -1,42 +1,12 @@
 # 本地开发环境配置指南
 
 ## 🎯 目标
-配置本地开发环境使用与线上一致的Neon PostgreSQL数据库，确保本地和线上环境完全一致。
+本地开发环境已配置为使用与线上一致的Neon PostgreSQL数据库，无需额外配置。
 
-## 📋 配置步骤
+## 📋 快速启动
 
-### 1. 获取Neon数据库连接字符串
-
-1. 登录 [Neon Console](https://console.neon.tech/)
-2. 选择你的项目
-3. 在 "Connection Details" 中复制连接字符串
-4. 连接字符串格式：
-   ```
-   postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
-   ```
-
-### 2. 设置环境变量
-
-#### Windows (PowerShell/CMD)
-```bash
-# 临时设置（当前会话有效）
-set DATABASE_URL=postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
-
-# 永久设置（推荐）
-setx DATABASE_URL "postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require"
-```
-
-#### macOS/Linux (Bash/Zsh)
-```bash
-# 临时设置（当前会话有效）
-export DATABASE_URL='postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require'
-
-# 永久设置（添加到 ~/.bashrc 或 ~/.zshrc）
-echo 'export DATABASE_URL="postgresql://username:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### 3. 启动本地开发环境
+### ✅ 数据库配置已完成
+项目已内置Neon数据库连接配置，无需手动设置环境变量。
 
 #### Windows
 ```bash
