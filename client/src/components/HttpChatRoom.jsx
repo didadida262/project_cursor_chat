@@ -185,6 +185,29 @@ function HttpChatRoom() {
     return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.floor(Math.random() * 10000)}`;
   };
 
+  // 调试函数：检查数据库状态
+  const debugDatabase = async () => {
+    try {
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? window.location.origin 
+        : 'http://localhost:3002';
+      
+      const response = await fetch(`${baseUrl}/api/test-db`);
+      const data = await response.json();
+      
+      console.log('🔍 数据库状态:', data);
+      
+      notification.info({
+        message: '数据库状态',
+        description: `用户数: ${data.usersCount}, 消息数: ${data.messagesCount}`,
+        placement: 'topRight',
+        duration: 5,
+      });
+    } catch (error) {
+      console.error('❌ 调试数据库失败:', error);
+    }
+  };
+
   // 加入聊天室
   const handleJoinChat = async () => {
     if (nickname.trim()) {
@@ -399,6 +422,14 @@ function HttpChatRoom() {
             <Title level={4} style={{ color: '#ffffff', margin: 0 }}>
               在线用户 ({users.filter(user => user.id !== userInfo?.id).length + 1})
             </Title>
+            <Button 
+              type="dashed" 
+              size="small" 
+              onClick={debugDatabase}
+              style={{ marginLeft: '10px', fontSize: '12px' }}
+            >
+              调试DB
+            </Button>
           </div>
           
           <div className="users-grid">

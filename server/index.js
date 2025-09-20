@@ -613,6 +613,11 @@ app.get('/api/test-db', async (req, res) => {
     const usersResult = await client.query('SELECT COUNT(*) as count FROM users');
     const messagesResult = await client.query('SELECT COUNT(*) as count FROM messages');
     
+    // 获取所有用户详情
+    const allUsersResult = await client.query('SELECT id, nickname, is_online, join_time FROM users ORDER BY join_time ASC');
+    const allUsers = allUsersResult.rows;
+    console.log(`👥 [${serverInstanceId}] 数据库中的所有用户:`, allUsers);
+    
     client.release();
     
     res.json({
@@ -621,6 +626,7 @@ app.get('/api/test-db', async (req, res) => {
       tables: tablesResult.rows.map(row => row.table_name),
       usersCount: usersResult.rows[0].count,
       messagesCount: messagesResult.rows[0].count,
+      allUsers: allUsers,
       timestamp: new Date().toISOString()
     });
     
