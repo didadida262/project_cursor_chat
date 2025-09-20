@@ -25,6 +25,8 @@ function HttpChatRoom() {
   const chatAPI = useRef(null);
   const userInfoRef = useRef(null);
   const isConnectedRef = useRef(false);
+  const previousUsersRef = useRef([]);
+  const isFirstLoadRef = useRef(true);
 
   // 保持 ref 与 state 同步
   useEffect(() => {
@@ -68,6 +70,44 @@ function HttpChatRoom() {
     });
     
     chatAPI.current.onUsers((userList) => {
+      // 检查用户列表变化，显示提示信息
+      const previousUsers = previousUsersRef.current;
+      const currentUserIds = new Set(userList.map(u => u.id));
+      const previousUserIds = new Set(previousUsers.map(u => u.id));
+      
+      // 只在非首次加载时显示提示
+      if (!isFirstLoadRef.current) {
+        // 检查新加入的用户
+        const newUsers = userList.filter(user => !previousUserIds.has(user.id));
+        newUsers.forEach(user => {
+          message.success({
+            content: `🎉 ${user.nickname} 加入了聊天室`,
+            duration: 3,
+            style: {
+              marginTop: '20px',
+            },
+          });
+        });
+        
+        // 检查离开的用户
+        const leftUsers = previousUsers.filter(user => !currentUserIds.has(user.id));
+        leftUsers.forEach(user => {
+          message.info({
+            content: `👋 ${user.nickname} 离开了聊天室`,
+            duration: 3,
+            style: {
+              marginTop: '20px',
+            },
+          });
+        });
+      } else {
+        // 首次加载完成，后续更新将显示提示
+        isFirstLoadRef.current = false;
+      }
+      
+      // 更新之前的用户列表引用
+      previousUsersRef.current = userList;
+      
       // 直接更新用户列表，确保实时性
       console.log(`📊 收到用户列表更新: ${userList.length} 人`, userList.map(u => u.nickname));
       setUsers(userList);
