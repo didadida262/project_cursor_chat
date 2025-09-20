@@ -272,45 +272,47 @@ class SimpleChatAPI {
     this.stopPolling();
 
     if (this.userId) {
-      // 优先使用 sendBeacon，确保在页面卸载时也能发送
-      if (navigator.sendBeacon) {
-        const data = JSON.stringify({ userId: this.userId, reason });
-        const success = navigator.sendBeacon(`${this.baseUrl}/api/leave`, data);
-        console.log('📤 使用 sendBeacon 发送离开请求', success ? '成功' : '失败', '原因:', reason);
-        
-        // 如果 sendBeacon 失败，尝试同步请求
-        if (!success) {
-          try {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${this.baseUrl}/api/leave`, false); // 同步请求
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(data);
-            console.log('📤 同步请求离开聊天室完成，原因:', reason);
-          } catch (error) {
-            console.error('📤 同步请求失败:', error);
-          }
-        }
-      } else {
-        // 降级到普通 fetch
-        try {
-          const response = await fetch(`${this.baseUrl}/api/leave`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId: this.userId, reason })
-          });
-          console.log('✅ 离开请求发送成功，原因:', reason);
-          return response.ok;
-        } catch (error) {
-          console.error('离开请求失败:', error);
-          return false;
-        }
-      }
+      const data = JSON.stringify({ userId: this.userId, reason });
       
-    // 清空用户信息
-    this.userId = null;
-    this.nickname = null;
+      try {
+        // 使用 fetch 发送请求，确保能等待响应
+        const response = await fetch(`${this.baseUrl}/api/leave`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: data
+        });
+        
+        if (response.ok) {
+          console.log('✅ 离开请求发送成功，原因:', reason);
+        } else {
+          console.error('❌ 离开请求失败，状态码:', response.status);
+        }
+        
+        // 清空用户信息
+        this.userId = null;
+        this.nickname = null;
+        
+        return response.ok;
+      } catch (error) {
+        console.error('❌ 离开请求异常:', error);
+        
+        // 降级到 sendBeacon
+        if (navigator.sendBeacon) {
+          const success = navigator.sendBeacon(`${this.baseUrl}/api/leave`, data);
+          console.log('📤 降级使用 sendBeacon', success ? '成功' : '失败');
+          
+          // 清空用户信息
+          this.userId = null;
+          this.nickname = null;
+          
+          return success;
+        }
+        
+        return false;
+      }
+    }
     
     return true;
   }
