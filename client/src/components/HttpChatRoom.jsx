@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Input, Button, Typography, Card, Space, Empty, App } from 'antd';
+import { Layout, Input, Button, Typography, Card, Space, Empty, App, notification } from 'antd';
 import { SendOutlined, UserOutlined } from '@ant-design/icons';
 import SimpleUserCard from './SimpleUserCard';
 import DraggableCurrentUserCard from './DraggableCurrentUserCard';
@@ -13,7 +13,6 @@ const { Text, Title } = Typography;
 // 生成用户ID的函数
 
 function HttpChatRoom() {
-  const { message } = App.useApp();
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -80,24 +79,22 @@ function HttpChatRoom() {
         // 检查新加入的用户
         const newUsers = userList.filter(user => !previousUserIds.has(user.id));
         newUsers.forEach(user => {
-          message.success({
-            content: `🎉 ${user.nickname} 加入了聊天室`,
+          notification.success({
+            message: '用户加入',
+            description: `🎉 ${user.nickname} 加入了聊天室`,
+            placement: 'topRight',
             duration: 3,
-            style: {
-              marginTop: '20px',
-            },
           });
         });
         
         // 检查离开的用户
         const leftUsers = previousUsers.filter(user => !currentUserIds.has(user.id));
         leftUsers.forEach(user => {
-          message.info({
-            content: `👋 ${user.nickname} 离开了聊天室`,
+          notification.info({
+            message: '用户离开',
+            description: `👋 ${user.nickname} 离开了聊天室`,
+            placement: 'topRight',
             duration: 3,
-            style: {
-              marginTop: '20px',
-            },
           });
         });
       } else {
@@ -215,14 +212,24 @@ function HttpChatRoom() {
       
       if (nicknameCheck.exists) {
         // 昵称已存在，显示警告
-        message.warning(nicknameCheck.message);
+        notification.warning({
+          message: '昵称已存在',
+          description: nicknameCheck.message,
+          placement: 'topRight',
+          duration: 4,
+        });
         console.log('⚠️ 昵称已存在:', nicknameCheck.message);
         return;
       }
       
       if (nicknameCheck.error) {
         // 检查过程中发生错误
-        message.error(nicknameCheck.error);
+        notification.error({
+          message: '昵称检查失败',
+          description: nicknameCheck.error,
+          placement: 'topRight',
+          duration: 4,
+        });
         console.error('❌ 昵称检查失败:', nicknameCheck.error);
         return;
       }
@@ -245,7 +252,12 @@ function HttpChatRoom() {
         setIsConnected(true);
         setShowNicknameInput(false);
         
-        message.success(`欢迎 ${user.nickname}！`);
+        notification.success({
+          message: '加入成功',
+          description: `欢迎 ${user.nickname}！`,
+          placement: 'topRight',
+          duration: 3,
+        });
         console.log('✅ 成功加入聊天室');
         
         // 立即获取一次用户列表，减少延迟
@@ -263,7 +275,12 @@ function HttpChatRoom() {
         }
       } else {
         // 连接失败，不更新本地状态
-        message.error('加入聊天室失败，请重试');
+        notification.error({
+          message: '加入失败',
+          description: '加入聊天室失败，请重试',
+          placement: 'topRight',
+          duration: 4,
+        });
         console.error('❌ 加入聊天室失败');
       }
     }
@@ -294,7 +311,12 @@ function HttpChatRoom() {
       } else {
         // 发送失败时恢复输入框内容
         setCurrentMessage(messageText);
-        message.error('消息发送失败，请重试');
+        notification.error({
+          message: '发送失败',
+          description: '消息发送失败，请重试',
+          placement: 'topRight',
+          duration: 4,
+        });
         console.error('❌ 消息发送失败');
       }
     } else {
@@ -303,7 +325,12 @@ function HttpChatRoom() {
         hasUserInfo: !!userInfo,
         isConnected: isConnected
       });
-      message.error('消息发送失败，请重试');
+      notification.error({
+        message: '发送失败',
+        description: '消息发送失败，请重试',
+        placement: 'topRight',
+        duration: 4,
+      });
     }
   };
 
