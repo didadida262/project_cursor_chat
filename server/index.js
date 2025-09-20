@@ -548,7 +548,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// 检查昵称是否已存在
+// 检查昵称是否已存在 - 完全基于数据库
 app.post('/api/check-nickname', async (req, res) => {
   try {
     const { nickname } = req.body;
@@ -562,12 +562,18 @@ app.post('/api/check-nickname', async (req, res) => {
     
     const trimmedNickname = nickname.trim();
     
-    // 检查内存中是否存在相同昵称的用户
-    const existingUser = Array.from(onlineUsers.values()).find(u => 
-      u.nickname.toLowerCase() === trimmedNickname.toLowerCase()
-    );
+    if (!pool) {
+      return res.json({ 
+        exists: false, 
+        error: '数据库未连接，无法检查昵称' 
+      });
+    }
     
-    if (existingUser) {
+    // 只检查数据库中的用户
+    const dbResult = await pool.query('SELECT id, nickname FROM users WHERE is_online = true AND LOWER(nickname) = LOWER($1)', [trimmedNickname]);
+    
+    if (dbResult.rows.length > 0) {
+      const existingUser = dbResult.rows[0];
       console.log(`⚠️ [${serverInstanceId}] 昵称已存在: ${trimmedNickname} (用户ID: ${existingUser.id})`);
       return res.json({ 
         exists: true, 
@@ -659,55 +665,29 @@ app.post('/api/clear-users', async (req, res) => {
   }
 });
 
+// 获取在线用户列表 - 完全基于数据库
 app.get('/api/users', async (req, res) => {
   try {
     console.log(`📊 [${serverInstanceId}] /api/users 请求`);
-    console.log(`🔍 [${serverInstanceId}] 请求头:`, {
-      'user-agent': req.get('user-agent'),
-      'x-forwarded-for': req.get('x-forwarded-for'),
-      'x-vercel-id': req.get('x-vercel-id')
-    });
     
-    if (pool) {
-      // 智能同步：先检查数据库，然后合并到内存
-      try {
-        const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
-        const dbUsers = dbResult.rows.map(row => ({
-          id: row.id,
-          nickname: row.nickname,
-          isOnline: row.is_online,
-          joinTime: row.join_time
-        }));
-        
-        console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length}`);
-        console.log(`📊 [${serverInstanceId}] 内存用户数量: ${onlineUsers.size}`);
-        
-        // 智能合并：将数据库中的用户添加到内存中，不删除现有的
-        for (const dbUser of dbUsers) {
-          if (!onlineUsers.has(dbUser.id)) {
-            onlineUsers.set(dbUser.id, dbUser);
-            userHeartbeats.set(dbUser.id, Date.now());
-            console.log(`➕ [${serverInstanceId}] 从数据库添加用户到内存: ${dbUser.nickname}`);
-          }
-        }
-        
-        // 返回合并后的用户列表
-        const finalUsers = Array.from(onlineUsers.values());
-        console.log(`📊 [${serverInstanceId}] 最终用户数量: ${finalUsers.length}`);
-        res.json(finalUsers);
-      } catch (dbError) {
-        console.error(`❌ [${serverInstanceId}] 数据库查询失败:`, dbError);
-        // 数据库失败时使用内存
-        const memoryUsers = Array.from(onlineUsers.values());
-        console.log(`📊 [${serverInstanceId}] 回退到内存用户数量: ${memoryUsers.length}`);
-        res.json(memoryUsers);
-      }
-    } else {
-      // 没有数据库连接时使用内存
-      const memoryUsers = Array.from(onlineUsers.values());
-      console.log(`📊 [${serverInstanceId}] 内存用户数量: ${memoryUsers.length}`);
-      res.json(memoryUsers);
+    if (!pool) {
+      console.error(`❌ [${serverInstanceId}] 数据库未连接`);
+      return res.json([]);
     }
+    
+    // 直接从数据库获取用户列表
+    const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
+    const dbUsers = dbResult.rows.map(row => ({
+      id: row.id,
+      nickname: row.nickname,
+      isOnline: row.is_online,
+      joinTime: row.join_time
+    }));
+    
+    console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length}`);
+    console.log(`📊 [${serverInstanceId}] 用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+    
+    res.json(dbUsers);
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error.message);
     res.json([]);
@@ -724,16 +704,16 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// 用户加入API
+// 用户加入API - 完全基于数据库
 app.post('/api/join', async (req, res) => {
   const userData = req.body;
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
-  console.log(`🔍 [${serverInstanceId}] 请求头信息:`, {
-    'user-agent': req.get('user-agent'),
-    'x-forwarded-for': req.get('x-forwarded-for'),
-    'x-vercel-id': req.get('x-vercel-id')
-  });
+  
+  if (!pool) {
+    console.error(`❌ [${serverInstanceId}] 数据库未连接，无法加入`);
+    return res.status(500).json({ success: false, error: '数据库未连接' });
+  }
   
   const user = {
     id: userData.id,
@@ -742,54 +722,55 @@ app.post('/api/join', async (req, res) => {
     joinTime: new Date().toISOString()
   };
   
-  // 直接保存到PostgreSQL，不依赖内存
-  console.log(`💾 [${serverInstanceId}] 直接保存用户到PostgreSQL:`, user);
+  // 直接保存到PostgreSQL
+  console.log(`💾 [${serverInstanceId}] 保存用户到PostgreSQL:`, user);
   await saveUser(user);
   console.log(`💾 [${serverInstanceId}] 用户保存完成`);
   
-  // 添加到内存中，不重新加载所有用户（避免清空其他用户）
-  onlineUsers.set(user.id, user);
-  userHeartbeats.set(user.id, Date.now());
-  
   console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
-  console.log(`📊 [${serverInstanceId}] 当前内存用户: ${onlineUsers.size} 人`);
   
   res.json({ success: true, user });
 });
 
-// 用户离开API
+// 用户离开API - 完全基于数据库
 app.post('/api/leave', async (req, res) => {
   const { userId } = req.body;
-  const user = onlineUsers.get(userId);
   
-  if (user) {
-    onlineUsers.delete(userId);
-    userHeartbeats.delete(userId); // 清理心跳记录
-    
-    // 同时更新PostgreSQL状态
+  console.log(`👋 [${serverInstanceId}] 用户离开请求: ${userId}`);
+  
+  if (!pool) {
+    console.error(`❌ [${serverInstanceId}] 数据库未连接，无法处理离开`);
+    return res.status(500).json({ success: false, error: '数据库未连接' });
+  }
+  
+  try {
+    // 直接从数据库删除用户
     await removeUser(userId);
-    
-    console.log(`👋 [${serverInstanceId}] 用户通过API离开: ${user.nickname}`);
-    
-    // 立即广播更新后的用户列表，不等待节流
-    const users = Array.from(onlineUsers.values());
-    console.log(`📤 立即广播用户列表更新，当前在线: ${users.length} 人`);
+    console.log(`✅ [${serverInstanceId}] 用户已从数据库删除: ${userId}`);
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 删除用户失败:`, error);
   }
   
   res.json({ success: true });
 });
 
-// 心跳API
+// 心跳API - 完全基于数据库
 app.post('/api/heartbeat', async (req, res) => {
   const { userId } = req.body;
   
-  if (userId && onlineUsers.has(userId)) {
-    userHeartbeats.set(userId, Date.now());
-    
-    // 同时更新PostgreSQL心跳时间
+  console.log(`💓 [${serverInstanceId}] 收到用户心跳: ${userId}`);
+  
+  if (!pool) {
+    console.error(`❌ [${serverInstanceId}] 数据库未连接，无法处理心跳`);
+    return res.status(500).json({ success: false, error: '数据库未连接' });
+  }
+  
+  try {
+    // 直接更新数据库心跳时间
     await updateUserHeartbeat(userId);
-    
-    console.log(`💓 [${serverInstanceId}] 收到用户心跳: ${userId}`);
+    console.log(`✅ [${serverInstanceId}] 心跳更新成功: ${userId}`);
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 心跳更新失败:`, error);
   }
   
   res.json({ success: true });
