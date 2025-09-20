@@ -500,16 +500,33 @@ app.get('/health', async (req, res) => {
       port: pool ? 5432 : null
     };
     
+    // 检查数据库中的用户数量
+    let dbUserCount = 0;
+    if (pool) {
+      try {
+        const result = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_online = true');
+        dbUserCount = parseInt(result.rows[0].count);
+      } catch (error) {
+        console.error('获取数据库用户数量失败:', error);
+      }
+    }
+    
     res.json({ 
       status: 'ok',
       message: 'Chatroom Server is running',
-      onlineUsers: onlineUsers.size,
+      memory: {
+        onlineUsers: onlineUsers.size,
+        userHeartbeats: userHeartbeats.size
+      },
       totalMessages: messageCount,
       storage: storageType,
       timestamp: new Date().toISOString(),
-      userHeartbeats: userHeartbeats.size,
       serverUptime: process.uptime(),
-      database: dbStatus,
+      database: {
+        ...dbStatus,
+        onlineUsers: dbUserCount,
+        connectionString: DATABASE_URL ? 'SET' : 'NOT_SET'
+      },
       serverInstanceId: serverInstanceId
     });
   } catch (error) {
@@ -527,6 +544,43 @@ app.get('/health', async (req, res) => {
         error: error.message
       },
       serverInstanceId: serverInstanceId
+    });
+  }
+});
+
+// 检查数据库用户数据
+app.get('/api/db-users', async (req, res) => {
+  try {
+    if (!pool) {
+      return res.json({
+        error: '数据库未连接',
+        memoryUsers: Array.from(onlineUsers.values())
+      });
+    }
+    
+    // 获取数据库中的所有用户
+    const result = await pool.query('SELECT * FROM users ORDER BY join_time DESC');
+    const dbUsers = result.rows;
+    
+    // 获取内存中的用户
+    const memoryUsers = Array.from(onlineUsers.values());
+    
+    res.json({
+      database: {
+        total: dbUsers.length,
+        online: dbUsers.filter(u => u.is_online).length,
+        users: dbUsers
+      },
+      memory: {
+        total: memoryUsers.length,
+        users: memoryUsers
+      }
+    });
+  } catch (error) {
+    console.error('获取数据库用户失败:', error);
+    res.status(500).json({
+      error: error.message,
+      memoryUsers: Array.from(onlineUsers.values())
     });
   }
 });
