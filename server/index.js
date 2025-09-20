@@ -821,10 +821,12 @@ app.post('/api/join', async (req, res) => {
     console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
     
     // 广播用户加入事件
+    console.log(`📡 [${serverInstanceId}] 准备广播用户加入事件:`, user);
     broadcastSSE({
       type: 'user_joined',
       user: user
     });
+    console.log(`📡 [${serverInstanceId}] 用户加入事件广播完成`);
     
     res.json({ success: true, user });
   } catch (error) {
