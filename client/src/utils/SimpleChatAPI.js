@@ -127,8 +127,12 @@ class SimpleChatAPI {
     if (this.pollingInterval) return;
 
     this.pollingInterval = setInterval(async () => {
-      if (!this.isConnected) return;
+      if (!this.isConnected) {
+        console.log('🔄 轮询跳过：未连接');
+        return;
+      }
 
+      console.log('🔄 开始轮询...');
       try {
 
         // 获取新消息
@@ -142,15 +146,20 @@ class SimpleChatAPI {
 
         // 获取用户列表（每次轮询都获取，确保实时性）
         try {
+          console.log(`📊 正在获取用户列表，排除用户ID: ${this.userId}`);
           const usersResponse = await fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`);
+          console.log(`📊 用户列表请求状态: ${usersResponse.status} ${usersResponse.statusText}`);
+          
           if (usersResponse.ok) {
             const users = await usersResponse.json();
-            console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
+            console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users);
             if (this.usersCallback) {
               this.usersCallback(users);
             }
           } else {
             console.error('❌ 获取用户列表失败:', usersResponse.status, usersResponse.statusText);
+            const errorText = await usersResponse.text();
+            console.error('❌ 错误响应内容:', errorText);
           }
         } catch (error) {
           console.error('❌ 获取用户列表网络错误:', error);
@@ -159,7 +168,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 3000); // 每3秒轮询一次，减少闪烁问题
+    }, 1000); // 每1秒轮询一次，确保实时性
   }
 
   // 停止轮询
