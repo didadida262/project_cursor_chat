@@ -725,29 +725,11 @@ app.post('/api/join', async (req, res) => {
   const userData = req.body;
   
   console.log(`🚀 [${serverInstanceId}] 用户尝试加入:`, userData);
-  console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
-  console.log(`📊 [${serverInstanceId}] 加入前用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
-  console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   console.log(`🔍 [${serverInstanceId}] 请求头信息:`, {
     'user-agent': req.get('user-agent'),
     'x-forwarded-for': req.get('x-forwarded-for'),
     'x-vercel-id': req.get('x-vercel-id')
   });
-  
-  // 检查是否已存在相同ID的用户（页面刷新情况）
-  const existingUserById = onlineUsers.get(userData.id);
-  if (existingUserById) {
-    // 如果存在相同ID，删除现有用户（页面刷新）
-    onlineUsers.delete(existingUserById.id);
-    userHeartbeats.delete(existingUserById.id);
-    
-    // 同时从PostgreSQL删除
-    await removeUser(existingUserById.id);
-    
-    console.log(`🔄 用户重新加入（页面刷新）: ${userData.nickname} (ID: ${userData.id})`);
-  }
-  
-  // 允许相同昵称的用户同时在线，不再检查昵称重复
   
   const user = {
     id: userData.id,
@@ -756,20 +738,36 @@ app.post('/api/join', async (req, res) => {
     joinTime: new Date().toISOString()
   };
   
-  onlineUsers.set(user.id, user);
-  userHeartbeats.set(user.id, Date.now()); // 记录心跳时间
-  
-  // 立即发送一次心跳确认，确保用户真正在线
-  console.log(`💓 [${serverInstanceId}] 用户加入，设置初始心跳时间: ${userData.nickname}`);
-  
-  // 同时保存到PostgreSQL
-  console.log(`💾 [${serverInstanceId}] 开始保存用户到PostgreSQL:`, user);
+  // 直接保存到PostgreSQL，不依赖内存
+  console.log(`💾 [${serverInstanceId}] 直接保存用户到PostgreSQL:`, user);
   await saveUser(user);
   console.log(`💾 [${serverInstanceId}] 用户保存完成`);
   
-  console.log(`✅ [${serverInstanceId}] 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
-  console.log(`👥 [${serverInstanceId}] 当前在线用户: ${onlineUsers.size} 人`);
-  console.log(`📊 [${serverInstanceId}] 用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
+  // 从数据库重新加载所有用户到内存，确保同步
+  if (pool) {
+    try {
+      const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
+      const dbUsers = dbResult.rows.map(row => ({
+        id: row.id,
+        nickname: row.nickname,
+        isOnline: row.is_online,
+        joinTime: row.join_time
+      }));
+      
+      // 清空内存并重新加载
+      onlineUsers.clear();
+      userHeartbeats.clear();
+      for (const dbUser of dbUsers) {
+        onlineUsers.set(dbUser.id, dbUser);
+        userHeartbeats.set(dbUser.id, Date.now());
+      }
+      
+      console.log(`✅ [${serverInstanceId}] 用户加入成功，重新加载所有用户: ${dbUsers.length} 人`);
+      console.log(`📊 [${serverInstanceId}] 用户列表:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+    } catch (error) {
+      console.error(`❌ [${serverInstanceId}] 重新加载用户失败:`, error);
+    }
+  }
   
   res.json({ success: true, user });
 });
@@ -824,20 +822,31 @@ app.post('/api/message', async (req, res) => {
   };
   
   console.log(`📨 [${serverInstanceId}] 收到消息: ${message.nickname}: ${message.message}`);
-  console.log(`📊 [${serverInstanceId}] 发送消息时在线用户: ${onlineUsers.size} 人`);
   console.log(`📊 [${serverInstanceId}] 发送者ID: ${messageData.userId}`);
-  console.log(`📊 [${serverInstanceId}] 发送者是否在内存中: ${onlineUsers.has(messageData.userId)}`);
-  console.log(`📊 [${serverInstanceId}] 发送者是否在心跳记录中: ${userHeartbeats.has(messageData.userId)}`);
+  
+  // 验证发送者是否在数据库中存在
+  let senderExists = false;
+  if (pool) {
+    try {
+      const result = await pool.query('SELECT id FROM users WHERE id = $1 AND is_online = true', [messageData.userId]);
+      senderExists = result.rows.length > 0;
+      console.log(`📊 [${serverInstanceId}] 发送者在数据库中: ${senderExists}`);
+    } catch (error) {
+      console.error(`❌ [${serverInstanceId}] 验证发送者失败:`, error);
+    }
+  }
   
   // 保存消息
   await saveMessage(message);
   
-  // 更新发送者的心跳时间
-  if (userHeartbeats.has(messageData.userId)) {
-    userHeartbeats.set(messageData.userId, Date.now());
-    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
-  } else {
-    console.error(`❌ [${serverInstanceId}] 发送者不在心跳记录中: ${messageData.userId}`);
+  // 更新发送者的心跳时间（直接更新数据库，不依赖内存）
+  if (pool) {
+    try {
+      await updateUserHeartbeat(messageData.userId);
+      console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
+    } catch (error) {
+      console.error(`❌ [${serverInstanceId}] 更新心跳失败:`, error);
+    }
   }
   
   // 立即返回响应
