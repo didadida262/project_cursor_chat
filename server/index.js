@@ -622,10 +622,14 @@ app.get('/api/users', async (req, res) => {
     // 直接使用内存中的用户列表，确保实时性
     const memoryUsers = Array.from(onlineUsers.values());
     
-    // 简化日志，只在用户数量变化时记录
-    if (memoryUsers.length === 0) {
-      console.warn(`⚠️ [${serverInstanceId}] 用户列表为空！`);
-    }
+    console.log(`📊 [${serverInstanceId}] /api/users 请求`);
+    console.log(`📊 [${serverInstanceId}] 内存用户数量: ${memoryUsers.length}`);
+    console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
+    console.log(`🔍 [${serverInstanceId}] 请求头:`, {
+      'user-agent': req.get('user-agent'),
+      'x-forwarded-for': req.get('x-forwarded-for'),
+      'x-vercel-id': req.get('x-vercel-id')
+    });
     
     res.json(memoryUsers);
   } catch (error) {
@@ -653,6 +657,11 @@ app.post('/api/join', async (req, res) => {
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
   console.log(`📊 [${serverInstanceId}] 加入前用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
   console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
+  console.log(`🔍 [${serverInstanceId}] 请求头信息:`, {
+    'user-agent': req.get('user-agent'),
+    'x-forwarded-for': req.get('x-forwarded-for'),
+    'x-vercel-id': req.get('x-vercel-id')
+  });
   
   // 检查是否已存在相同ID的用户（页面刷新情况）
   const existingUserById = onlineUsers.get(userData.id);
@@ -744,6 +753,10 @@ app.post('/api/message', async (req, res) => {
   };
   
   console.log(`📨 [${serverInstanceId}] 收到消息: ${message.nickname}: ${message.message}`);
+  console.log(`📊 [${serverInstanceId}] 发送消息时在线用户: ${onlineUsers.size} 人`);
+  console.log(`📊 [${serverInstanceId}] 发送者ID: ${messageData.userId}`);
+  console.log(`📊 [${serverInstanceId}] 发送者是否在内存中: ${onlineUsers.has(messageData.userId)}`);
+  console.log(`📊 [${serverInstanceId}] 发送者是否在心跳记录中: ${userHeartbeats.has(messageData.userId)}`);
   
   // 保存消息
   await saveMessage(message);
@@ -751,10 +764,14 @@ app.post('/api/message', async (req, res) => {
   // 更新发送者的心跳时间
   if (userHeartbeats.has(messageData.userId)) {
     userHeartbeats.set(messageData.userId, Date.now());
+    console.log(`💓 [${serverInstanceId}] 更新发送者心跳时间: ${messageData.nickname}`);
+  } else {
+    console.error(`❌ [${serverInstanceId}] 发送者不在心跳记录中: ${messageData.userId}`);
   }
   
   // 立即返回响应
   res.json({ success: true, message });
+  console.log(`✅ [${serverInstanceId}] 消息发送成功响应已发送`);
 });
 
 // Socket.io 连接处理
