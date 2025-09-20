@@ -669,7 +669,7 @@ app.get('/api/users', async (req, res) => {
     });
     
     if (pool) {
-      // 优先从数据库获取用户列表，确保跨实例一致性
+      // 智能同步：先检查数据库，然后合并到内存
       try {
         const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
         const dbUsers = dbResult.rows.map(row => ({
@@ -680,20 +680,24 @@ app.get('/api/users', async (req, res) => {
         }));
         
         console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length}`);
-        console.log(`📊 [${serverInstanceId}] 数据库用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+        console.log(`📊 [${serverInstanceId}] 内存用户数量: ${onlineUsers.size}`);
         
-        // 同时更新内存，保持同步
-        onlineUsers.clear();
-        userHeartbeats.clear();
-        for (const user of dbUsers) {
-          onlineUsers.set(user.id, user);
-          userHeartbeats.set(user.id, Date.now());
+        // 智能合并：将数据库中的用户添加到内存中，不删除现有的
+        for (const dbUser of dbUsers) {
+          if (!onlineUsers.has(dbUser.id)) {
+            onlineUsers.set(dbUser.id, dbUser);
+            userHeartbeats.set(dbUser.id, Date.now());
+            console.log(`➕ [${serverInstanceId}] 从数据库添加用户到内存: ${dbUser.nickname}`);
+          }
         }
         
-        res.json(dbUsers);
+        // 返回合并后的用户列表
+        const finalUsers = Array.from(onlineUsers.values());
+        console.log(`📊 [${serverInstanceId}] 最终用户数量: ${finalUsers.length}`);
+        res.json(finalUsers);
       } catch (dbError) {
         console.error(`❌ [${serverInstanceId}] 数据库查询失败:`, dbError);
-        // 数据库失败时回退到内存
+        // 数据库失败时使用内存
         const memoryUsers = Array.from(onlineUsers.values());
         console.log(`📊 [${serverInstanceId}] 回退到内存用户数量: ${memoryUsers.length}`);
         res.json(memoryUsers);
@@ -743,31 +747,12 @@ app.post('/api/join', async (req, res) => {
   await saveUser(user);
   console.log(`💾 [${serverInstanceId}] 用户保存完成`);
   
-  // 从数据库重新加载所有用户到内存，确保同步
-  if (pool) {
-    try {
-      const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
-      const dbUsers = dbResult.rows.map(row => ({
-        id: row.id,
-        nickname: row.nickname,
-        isOnline: row.is_online,
-        joinTime: row.join_time
-      }));
-      
-      // 清空内存并重新加载
-      onlineUsers.clear();
-      userHeartbeats.clear();
-      for (const dbUser of dbUsers) {
-        onlineUsers.set(dbUser.id, dbUser);
-        userHeartbeats.set(dbUser.id, Date.now());
-      }
-      
-      console.log(`✅ [${serverInstanceId}] 用户加入成功，重新加载所有用户: ${dbUsers.length} 人`);
-      console.log(`📊 [${serverInstanceId}] 用户列表:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
-    } catch (error) {
-      console.error(`❌ [${serverInstanceId}] 重新加载用户失败:`, error);
-    }
-  }
+  // 添加到内存中，不重新加载所有用户（避免清空其他用户）
+  onlineUsers.set(user.id, user);
+  userHeartbeats.set(user.id, Date.now());
+  
+  console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
+  console.log(`📊 [${serverInstanceId}] 当前内存用户: ${onlineUsers.size} 人`);
   
   res.json({ success: true, user });
 });
