@@ -590,6 +590,55 @@ app.post('/api/check-nickname', async (req, res) => {
   }
 });
 
+// 测试数据库连接和表状态
+app.get('/api/test-db', async (req, res) => {
+  try {
+    console.log(`🔍 [${serverInstanceId}] 测试数据库连接...`);
+    
+    if (!pool) {
+      return res.json({ 
+        success: false, 
+        error: '数据库连接池不存在',
+        pool: null 
+      });
+    }
+    
+    // 测试连接
+    const client = await pool.connect();
+    console.log(`✅ [${serverInstanceId}] 数据库连接测试成功`);
+    
+    // 检查表是否存在
+    const tablesResult = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name IN ('users', 'messages')
+    `);
+    
+    // 检查用户表数据
+    const usersResult = await client.query('SELECT COUNT(*) as count FROM users');
+    const messagesResult = await client.query('SELECT COUNT(*) as count FROM messages');
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      pool: 'connected',
+      tables: tablesResult.rows.map(row => row.table_name),
+      usersCount: usersResult.rows[0].count,
+      messagesCount: messagesResult.rows[0].count,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error(`❌ [${serverInstanceId}] 数据库测试失败:`, error);
+    res.json({ 
+      success: false, 
+      error: error.message,
+      pool: pool ? 'exists' : 'null'
+    });
+  }
+});
+
 // 检查数据库用户数据
 app.get('/api/db-users', async (req, res) => {
   try {
@@ -750,15 +799,23 @@ app.post('/api/join', async (req, res) => {
     // 只有在通过昵称校验后才保存到PostgreSQL
     console.log(`💾 [${serverInstanceId}] 昵称校验通过，保存用户到PostgreSQL:`, user);
     try {
-      await saveUser(user);
-      console.log(`💾 [${serverInstanceId}] 用户保存完成`);
+      console.log(`💾 [${serverInstanceId}] 开始调用saveUser函数...`);
+      const saveResult = await saveUser(user);
+      console.log(`💾 [${serverInstanceId}] saveUser函数执行完成，结果:`, saveResult);
       
-      // 验证用户是否真的保存成功了
+      // 立即验证用户是否真的保存成功了
+      console.log(`💾 [${serverInstanceId}] 开始验证用户是否保存成功...`);
       const verifyResult = await pool.query('SELECT * FROM users WHERE id = $1', [user.id]);
+      console.log(`💾 [${serverInstanceId}] 验证查询结果:`, verifyResult.rows);
+      
       if (verifyResult.rows.length > 0) {
         console.log(`✅ [${serverInstanceId}] 用户保存验证成功:`, verifyResult.rows[0]);
       } else {
         console.error(`❌ [${serverInstanceId}] 用户保存验证失败: 数据库中找不到用户 ${user.id}`);
+        
+        // 额外检查：查看数据库中所有用户
+        const allUsersResult = await pool.query('SELECT * FROM users');
+        console.log(`🔍 [${serverInstanceId}] 数据库中所有用户:`, allUsersResult.rows);
       }
     } catch (saveError) {
       console.error(`❌ [${serverInstanceId}] saveUser函数执行失败:`, saveError);
