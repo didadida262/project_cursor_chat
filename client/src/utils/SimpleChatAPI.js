@@ -114,7 +114,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 2000); // 每2秒轮询一次，进一步减少服务器压力
+    }, 1000); // 每1秒轮询一次，提高响应速度
   }
 
   // 停止轮询

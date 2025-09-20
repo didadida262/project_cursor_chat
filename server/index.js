@@ -173,8 +173,8 @@ function broadcastUsersThrottled() {
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 30000; // 30秒无响应视为离线
-const HEARTBEAT_CHECK_INTERVAL = 15000; // 每15秒检查一次
+const HEARTBEAT_TIMEOUT = 10000; // 10秒无响应视为离线
+const HEARTBEAT_CHECK_INTERVAL = 5000; // 每5秒检查一次
 
 // 心跳检测 - 自动清理离线用户
 setInterval(async () => {
@@ -216,6 +216,35 @@ setInterval(async () => {
 }, HEARTBEAT_CHECK_INTERVAL);
 
 console.log('✅ 心跳检测已启用，自动清理离线用户');
+
+// 定期强制清理无效用户（每30秒执行一次）
+setInterval(async () => {
+  console.log('🧹 开始定期清理无效用户...');
+  
+  // 清理内存中无效的心跳记录
+  const now = Date.now();
+  const invalidHeartbeats = [];
+  
+  for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
+    if (now - lastHeartbeat > HEARTBEAT_TIMEOUT * 2) { // 超过2倍超时时间
+      invalidHeartbeats.push(userId);
+    }
+  }
+  
+  for (const userId of invalidHeartbeats) {
+    const user = onlineUsers.get(userId);
+    if (user) {
+      onlineUsers.delete(userId);
+      userHeartbeats.delete(userId);
+      await removeUser(userId);
+      console.log(`🧹 强制清理无效用户: ${user.nickname} (ID: ${userId})`);
+    }
+  }
+  
+  if (invalidHeartbeats.length > 0) {
+    console.log(`🧹 定期清理完成，清理了 ${invalidHeartbeats.length} 个无效用户`);
+  }
+}, 30000); // 每30秒执行一次
 
 // 消息存储相关的辅助函数
 const HISTORY_LIMIT = 50;
@@ -572,6 +601,10 @@ app.post('/api/join', async (req, res) => {
     // 如果存在相同昵称，删除现有用户
     onlineUsers.delete(existingUser.id);
     userHeartbeats.delete(existingUser.id);
+    
+    // 同时从PostgreSQL删除
+    await removeUser(existingUser.id);
+    
     console.log(`🔄 删除重复昵称用户: ${userData.nickname} (ID: ${existingUser.id})`);
   }
   
@@ -610,6 +643,10 @@ app.post('/api/leave', async (req, res) => {
     await removeUser(userId);
     
     console.log(`👋 [${serverInstanceId}] 用户通过API离开: ${user.nickname}`);
+    
+    // 立即广播更新后的用户列表，不等待节流
+    const users = Array.from(onlineUsers.values());
+    console.log(`📤 立即广播用户列表更新，当前在线: ${users.length} 人`);
   }
   
   res.json({ success: true });
