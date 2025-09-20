@@ -173,8 +173,8 @@ function broadcastUsersThrottled() {
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 30000; // 30秒无响应视为离线
-const HEARTBEAT_CHECK_INTERVAL = 15000; // 每15秒检查一次
+const HEARTBEAT_TIMEOUT = 60000; // 60秒无响应视为离线（给用户更多时间）
+const HEARTBEAT_CHECK_INTERVAL = 30000; // 每30秒检查一次（减少检查频率）
 
 // 心跳检测 - 自动清理离线用户
 setInterval(async () => {
@@ -583,24 +583,17 @@ app.post('/api/join', async (req, res) => {
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
   console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   
-  // 检查是否已存在相同ID的用户（防止重复加入）
-  if (onlineUsers.has(userData.id)) {
-    console.log(`🔄 用户ID已存在，更新现有用户: ${userData.nickname}`);
-    onlineUsers.delete(userData.id);
-    userHeartbeats.delete(userData.id);
-  }
-  
-  // 检查是否已存在相同昵称的用户
+  // 检查是否已存在相同昵称的用户（允许相同ID，因为可能是页面刷新）
   const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
   if (existingUser) {
-    // 如果存在相同昵称，删除现有用户
+    // 如果存在相同昵称，删除现有用户（可能是页面刷新）
     onlineUsers.delete(existingUser.id);
     userHeartbeats.delete(existingUser.id);
     
     // 同时从PostgreSQL删除
     await removeUser(existingUser.id);
     
-    console.log(`🔄 删除重复昵称用户: ${userData.nickname} (ID: ${existingUser.id})`);
+    console.log(`🔄 用户重新加入（可能是页面刷新）: ${userData.nickname} (旧ID: ${existingUser.id}, 新ID: ${userData.id})`);
   }
   
   const user = {
@@ -612,6 +605,9 @@ app.post('/api/join', async (req, res) => {
   
   onlineUsers.set(userData.id, user);
   userHeartbeats.set(userData.id, Date.now()); // 记录心跳时间
+  
+  // 立即发送一次心跳确认，确保用户真正在线
+  console.log(`💓 [${serverInstanceId}] 用户加入，设置初始心跳时间: ${userData.nickname}`);
   
   // 同时保存到PostgreSQL
   console.log(`💾 [${serverInstanceId}] 开始保存用户到PostgreSQL:`, user);

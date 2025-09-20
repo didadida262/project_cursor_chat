@@ -180,14 +180,15 @@ function HttpChatRoom() {
 
       console.log('🚀 用户尝试加入聊天室:', user);
       
-      // 立即更新本地状态，实现乐观更新
-      setUserInfo(user);
-      setIsConnected(true);
-      setShowNicknameInput(false);
-      
+      // 先尝试连接，成功后再更新本地状态
       const success = await chatAPI.current.connect(user);
       
       if (success) {
+        // 连接成功后才更新本地状态
+        setUserInfo(user);
+        setIsConnected(true);
+        setShowNicknameInput(false);
+        
         message.success(`欢迎 ${user.nickname}！`);
         console.log('✅ 成功加入聊天室');
         
@@ -205,10 +206,7 @@ function HttpChatRoom() {
           console.error('获取用户列表失败:', error);
         }
       } else {
-        // 如果连接失败，回滚状态
-        setUserInfo(null);
-        setIsConnected(false);
-        setShowNicknameInput(true);
+        // 连接失败，不更新本地状态
         message.error('加入聊天室失败，请重试');
         console.error('❌ 加入聊天室失败');
       }
