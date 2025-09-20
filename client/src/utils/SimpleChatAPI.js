@@ -27,6 +27,9 @@ class SimpleChatAPI {
     this.nickname = userData.nickname;
     
     try {
+      console.log('🚀 开始发送连接请求:', userData);
+      console.log('🚀 请求URL:', `${this.baseUrl}/api/join`);
+      
       // 发送用户加入请求
       const response = await fetch(`${this.baseUrl}/api/join`, {
         method: 'POST',

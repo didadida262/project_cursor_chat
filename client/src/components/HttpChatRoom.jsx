@@ -189,8 +189,18 @@ function HttpChatRoom() {
 
   // 发送消息
   const sendMessage = async () => {
+    console.log('🔍 sendMessage 被调用');
+    console.log('🔍 当前状态检查:', {
+      currentMessage: currentMessage.trim(),
+      userInfo: userInfo,
+      isConnected: isConnected,
+      userInfoId: userInfo?.id,
+      userInfoNickname: userInfo?.nickname
+    });
+    
     if (currentMessage.trim() && userInfo && isConnected) {
       const messageText = currentMessage.trim();
+      console.log('✅ 条件检查通过，开始发送消息:', messageText);
       
       // 立即清空输入框，提供即时反馈
       setCurrentMessage('');
@@ -205,6 +215,13 @@ function HttpChatRoom() {
         message.error('消息发送失败，请重试');
         console.error('❌ 消息发送失败');
       }
+    } else {
+      console.error('❌ 消息发送条件不满足:', {
+        hasMessage: !!currentMessage.trim(),
+        hasUserInfo: !!userInfo,
+        isConnected: isConnected
+      });
+      message.error('消息发送失败，请重试');
     }
   };
 
