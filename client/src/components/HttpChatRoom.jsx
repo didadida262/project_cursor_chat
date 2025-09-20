@@ -142,14 +142,38 @@ function HttpChatRoom() {
               // 调用 disconnect 删除用户数据
               await chatAPI.current.disconnect('tab_close');
               console.log('✅ 用户数据删除成功');
+              
+              // 跳转到输入名称页面
+              setShowNicknameInput(true);
+              setUserInfo(null);
+              setIsConnected(false);
+              setMessages([]);
+              setUsers([]);
+              setNickname('');
+              
+              // 显示成功提示
+              notification.success({
+                message: '👋 已离开聊天室',
+                description: '已成功从聊天室中移除',
+                placement: 'topRight',
+                duration: 2,
+              });
+              
             } catch (error) {
               console.error('❌ 删除用户数据失败:', error);
+              notification.error({
+                message: '❌ 离开失败',
+                description: '离开聊天室时发生错误，请重试',
+                placement: 'topRight',
+                duration: 3,
+              });
+            } finally {
+              setIsLeaving(false);
             }
-            
-            // 延迟关闭页面，确保请求发送完成
-            setTimeout(() => {
-              window.close();
-            }, 500);
+          },
+          onCancel: () => {
+            // 用户点击取消，不做任何操作，弹框消失
+            console.log('🚪 用户取消离开聊天室');
           }
         });
       }
@@ -175,9 +199,38 @@ function HttpChatRoom() {
             try {
               await chatAPI.current.disconnect('page_refresh');
               console.log('✅ 用户数据删除成功');
+              
+              // 跳转到输入名称页面
+              setShowNicknameInput(true);
+              setUserInfo(null);
+              setIsConnected(false);
+              setMessages([]);
+              setUsers([]);
+              setNickname('');
+              
+              // 显示成功提示
+              notification.success({
+                message: '👋 已离开聊天室',
+                description: '已成功从聊天室中移除',
+                placement: 'topRight',
+                duration: 2,
+              });
+              
             } catch (error) {
               console.error('❌ 删除用户数据失败:', error);
+              notification.error({
+                message: '❌ 离开失败',
+                description: '离开聊天室时发生错误，请重试',
+                placement: 'topRight',
+                duration: 3,
+              });
+            } finally {
+              setIsLeaving(false);
             }
+          },
+          onCancel: () => {
+            // 用户点击取消，不做任何操作，弹框消失
+            console.log('👁️ 用户取消离开聊天室');
           }
         });
       }
