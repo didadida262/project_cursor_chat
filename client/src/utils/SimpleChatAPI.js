@@ -47,6 +47,23 @@ class SimpleChatAPI {
         console.log('✅ 连接成功:', result);
         this.isConnected = true;
         this.startPolling();
+        
+        // 连接成功后立即获取一次用户列表
+        setTimeout(async () => {
+          try {
+            const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+            if (usersResponse.ok) {
+              const users = await usersResponse.json();
+              console.log(`📊 连接后立即获取用户列表: ${users.length} 人`, users.map(u => u.nickname));
+              if (this.usersCallback) {
+                this.usersCallback(users);
+              }
+            }
+          } catch (error) {
+            console.error('立即获取用户列表失败:', error);
+          }
+        }, 100); // 100ms后获取，确保服务器端用户已添加
+        
         console.log('✅ 成功连接到聊天室，开始轮询');
         return true;
       } else {
@@ -118,7 +135,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 1000); // 每1秒轮询一次，提高响应速度
+    }, 500); // 每0.5秒轮询一次，进一步提高响应速度
   }
 
   // 停止轮询
@@ -228,6 +245,10 @@ class SimpleChatAPI {
           console.error('离开请求失败:', error);
         });
       }
+      
+      // 清空用户信息
+      this.userId = null;
+      this.nickname = null;
     }
   }
 
