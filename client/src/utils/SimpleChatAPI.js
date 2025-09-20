@@ -10,7 +10,6 @@ class SimpleChatAPI {
     this.nickname = null;
     this.lastUsersUpdate = 0;
     this.usersUpdateThrottle = 1000; // 1秒内只更新一次用户列表
-    this.sseConnection = null;
   }
 
   // 检查昵称是否已存在
@@ -89,7 +88,6 @@ class SimpleChatAPI {
         console.log('✅ 连接成功:', result);
         this.isConnected = true;
         this.startPolling();
-        this.connectSSE(); // 建立SSE连接
         
         // 连接成功后立即获取最新数据
         setTimeout(async () => {
@@ -155,7 +153,7 @@ class SimpleChatAPI {
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 500); // 每500ms轮询一次，实现准实时
+    }, 500); // 每500ms轮询一次，实现实时更新
   }
 
   // 停止轮询
@@ -200,71 +198,6 @@ class SimpleChatAPI {
     }
   }
 
-  // 建立SSE连接
-  connectSSE() {
-    if (this.sseConnection) return;
-
-    console.log('📡 建立SSE连接...');
-    this.sseConnection = new EventSource(`${this.baseUrl}/api/events`);
-
-    this.sseConnection.onopen = () => {
-      console.log('✅ SSE连接已建立');
-    };
-
-    this.sseConnection.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('📡 收到SSE消息:', data);
-
-        switch (data.type) {
-          case 'connected':
-            console.log('📡 SSE连接确认，客户端ID:', data.clientId);
-            break;
-          case 'new_message':
-            console.log('📨 收到新消息推送:', data.message);
-            // 立即获取最新消息列表
-            this.fetchLatestData();
-            break;
-          case 'user_joined':
-            console.log('👋 收到用户加入推送:', data.user);
-            console.log('👋 当前用户ID:', this.userId, '加入用户ID:', data.user.id);
-            // 立即获取最新用户列表
-            this.fetchLatestData();
-            break;
-          case 'user_left':
-            console.log('👋 收到用户离开推送:', data.userId);
-            // 立即获取最新用户列表
-            this.fetchLatestData();
-            break;
-          case 'heartbeat':
-            console.log('💓 SSE心跳:', data.timestamp);
-            break;
-        }
-      } catch (error) {
-        console.error('❌ SSE消息解析失败:', error);
-      }
-    };
-
-    this.sseConnection.onerror = (error) => {
-      console.error('❌ SSE连接错误:', error);
-      // 连接断开时尝试重连
-      setTimeout(() => {
-        if (this.isConnected && !this.sseConnection) {
-          console.log('🔄 尝试重连SSE...');
-          this.connectSSE();
-        }
-      }, 5000);
-    };
-  }
-
-  // 断开SSE连接
-  disconnectSSE() {
-    if (this.sseConnection) {
-      console.log('📡 断开SSE连接');
-      this.sseConnection.close();
-      this.sseConnection = null;
-    }
-  }
 
   // 发送消息
   async sendMessage(messageText) {
@@ -337,7 +270,6 @@ class SimpleChatAPI {
     console.log('🔌 正在断开连接，原因:', reason);
     this.isConnected = false;
     this.stopPolling();
-    this.disconnectSSE(); // 断开SSE连接
 
     if (this.userId) {
       // 优先使用 sendBeacon，确保在页面卸载时也能发送

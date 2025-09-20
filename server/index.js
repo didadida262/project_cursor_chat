@@ -131,7 +131,6 @@ const onlineUsers = new Map();
 const userHeartbeats = new Map();
 
 // SSE客户端连接存储
-let sseClients = new Map();
 
 // 添加服务器实例ID，用于调试Vercel冷启动问题
 const serverInstanceId = `server_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -820,13 +819,6 @@ app.post('/api/join', async (req, res) => {
     
     console.log(`✅ [${serverInstanceId}] 用户加入成功: ${user.nickname}`);
     
-    // 广播用户加入事件
-    console.log(`📡 [${serverInstanceId}] 准备广播用户加入事件:`, user);
-    broadcastSSE({
-      type: 'user_joined',
-      user: user
-    });
-    console.log(`📡 [${serverInstanceId}] 用户加入事件广播完成`);
     
     res.json({ success: true, user });
   } catch (error) {
@@ -862,12 +854,6 @@ app.post('/api/leave', async (req, res) => {
     await removeUser(userId);
     console.log(`✅ [${serverInstanceId}] 用户已从数据库删除: ${userId}, 原因: ${reason}`);
     
-    // 广播用户离开事件
-    broadcastSSE({
-      type: 'user_left',
-      userId: userId,
-      reason: reason
-    });
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 删除用户失败:`, error);
   }
@@ -878,66 +864,6 @@ app.post('/api/leave', async (req, res) => {
 // 心跳API - 完全基于数据库
 
 // Server-Sent Events 端点 - 用于实时推送
-app.get('/api/events', (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control'
-  });
-
-  const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  console.log(`📡 [${serverInstanceId}] 新的SSE客户端连接: ${clientId}`);
-
-  // 存储客户端连接
-  if (!sseClients) {
-    sseClients = new Map();
-  }
-  sseClients.set(clientId, res);
-
-  // 发送连接确认
-  res.write(`data: ${JSON.stringify({ type: 'connected', clientId })}\n\n`);
-
-  // 定期发送心跳
-  const heartbeat = setInterval(() => {
-    if (sseClients.has(clientId)) {
-      res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`);
-    } else {
-      clearInterval(heartbeat);
-    }
-  }, 30000); // 30秒心跳
-
-  // 客户端断开连接
-  req.on('close', () => {
-    console.log(`📡 [${serverInstanceId}] SSE客户端断开: ${clientId}`);
-    sseClients.delete(clientId);
-    clearInterval(heartbeat);
-  });
-
-  req.on('error', () => {
-    console.log(`📡 [${serverInstanceId}] SSE客户端错误: ${clientId}`);
-    sseClients.delete(clientId);
-    clearInterval(heartbeat);
-  });
-});
-
-// 广播函数 - 向所有SSE客户端发送消息
-function broadcastSSE(data) {
-  if (!sseClients || sseClients.size === 0) return;
-  
-  const message = `data: ${JSON.stringify(data)}\n\n`;
-  console.log(`📡 [${serverInstanceId}] 广播SSE消息给 ${sseClients.size} 个客户端:`, data.type);
-  
-  for (const [clientId, res] of sseClients.entries()) {
-    try {
-      res.write(message);
-    } catch (error) {
-      console.error(`📡 [${serverInstanceId}] 向客户端 ${clientId} 发送SSE失败:`, error);
-      sseClients.delete(clientId);
-    }
-  }
-}
 
 // 发送消息API - 完全基于数据库
 app.post('/api/message', async (req, res) => {
@@ -983,11 +909,6 @@ app.post('/api/message', async (req, res) => {
     // 保存消息
     await saveMessage(message);
     
-    // 立即广播新消息给所有SSE客户端
-    broadcastSSE({
-      type: 'new_message',
-      message: message
-    });
     
     // 返回成功响应
     res.json({ success: true, message });
