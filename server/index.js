@@ -279,42 +279,44 @@ async function getAllOnlineUsers() {
   try {
     console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
     
-    // 优先使用内存中的用户列表，确保数据一致性
-    const memoryUsers = Array.from(onlineUsers.values());
-    console.log(`💾 [${serverInstanceId}] 从内存获取在线用户: ${memoryUsers.length} 人`, memoryUsers.map(u => u.nickname));
-    
-    if (pool) {
-      console.log(`💾 [${serverInstanceId}] 开始从PostgreSQL查询在线用户...`);
-      
-      // 先确保表存在
-      await ensureTablesExist();
-      
-      // 清理PostgreSQL中不在内存中的用户
-      const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
-      const dbUsers = dbResult.rows.map(row => ({
-        id: row.id,
-        nickname: row.nickname,
-        isOnline: row.is_online,
-        joinTime: row.join_time,
-        lastHeartbeat: row.last_heartbeat
-      }));
-      
-      // 删除PostgreSQL中存在但内存中不存在的用户
-      for (const dbUser of dbUsers) {
-        if (!onlineUsers.has(dbUser.id)) {
-          await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
-          console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname}`);
-        }
-      }
-      
-      console.log(`💾 [${serverInstanceId}] PostgreSQL用户清理完成`);
+    // 本地开发时直接返回内存中的用户列表
+    if (!pool) {
+      const memoryUsers = Array.from(onlineUsers.values());
+      console.log(`💾 [${serverInstanceId}] 本地开发，从内存获取在线用户: ${memoryUsers.length} 人`, memoryUsers.map(u => u.nickname));
+      return memoryUsers;
     }
     
-    return memoryUsers;
+    console.log(`💾 [${serverInstanceId}] 生产环境，从PostgreSQL查询在线用户...`);
+    
+    // 先确保表存在
+    await ensureTablesExist();
+    
+    const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
+    const dbUsers = result.rows.map(row => ({
+      id: row.id,
+      nickname: row.nickname,
+      isOnline: row.is_online,
+      joinTime: row.join_time,
+      lastHeartbeat: row.last_heartbeat
+    }));
+    
+    console.log(`💾 [${serverInstanceId}] 从PostgreSQL加载在线用户: ${dbUsers.length} 人`, dbUsers.map(u => u.nickname));
+    
+    // 清理PostgreSQL中不在内存中的用户
+    for (const dbUser of dbUsers) {
+      if (!onlineUsers.has(dbUser.id)) {
+        await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
+        console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname}`);
+      }
+    }
+    
+    return dbUsers;
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取在线用户失败:`, error);
     // 出错时返回内存中的用户列表
-    return Array.from(onlineUsers.values());
+    const memoryUsers = Array.from(onlineUsers.values());
+    console.log(`💾 [${serverInstanceId}] 降级到内存用户列表: ${memoryUsers.length} 人`);
+    return memoryUsers;
   }
 }
 
