@@ -89,20 +89,9 @@ class SimpleChatAPI {
         this.isConnected = true;
         this.startPolling();
         
-        // 连接成功后立即获取一次用户列表
+        // 连接成功后立即获取最新数据
         setTimeout(async () => {
-          try {
-            const usersResponse = await fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`);
-            if (usersResponse.ok) {
-              const users = await usersResponse.json();
-              console.log(`📊 连接后立即获取其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
-              if (this.usersCallback) {
-                this.usersCallback(users);
-              }
-            }
-          } catch (error) {
-            console.error('立即获取用户列表失败:', error);
-          }
+          await this.fetchLatestData();
         }, 100); // 100ms后获取，确保服务器端用户已添加
         
         console.log('✅ 成功连接到聊天室，开始轮询');
@@ -134,9 +123,13 @@ class SimpleChatAPI {
 
       console.log('🔄 开始轮询...');
       try {
+        // 并行获取消息和用户列表，提高效率
+        const [messagesResponse, usersResponse] = await Promise.all([
+          fetch(`${this.baseUrl}/api/messages`),
+          fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`)
+        ]);
 
-        // 获取新消息
-        const messagesResponse = await fetch(`${this.baseUrl}/api/messages`);
+        // 处理消息
         if (messagesResponse.ok) {
           const messages = await messagesResponse.json();
           if (this.messageCallback) {
@@ -144,31 +137,22 @@ class SimpleChatAPI {
           }
         }
 
-        // 获取用户列表（每次轮询都获取，确保实时性）
-        try {
-          console.log(`📊 正在获取用户列表，排除用户ID: ${this.userId}`);
-          const usersResponse = await fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`);
-          console.log(`📊 用户列表请求状态: ${usersResponse.status} ${usersResponse.statusText}`);
-          
-          if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users);
-            if (this.usersCallback) {
-              this.usersCallback(users);
-            }
-          } else {
-            console.error('❌ 获取用户列表失败:', usersResponse.status, usersResponse.statusText);
-            const errorText = await usersResponse.text();
-            console.error('❌ 错误响应内容:', errorText);
+        // 处理用户列表
+        if (usersResponse.ok) {
+          const users = await usersResponse.json();
+          console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
+          if (this.usersCallback) {
+            this.usersCallback(users);
           }
-        } catch (error) {
-          console.error('❌ 获取用户列表网络错误:', error);
-          // 网络错误时不更新用户列表，避免显示空列表
+        } else {
+          console.error('❌ 获取用户列表失败:', usersResponse.status, usersResponse.statusText);
+          const errorText = await usersResponse.text();
+          console.error('❌ 错误响应内容:', errorText);
         }
       } catch (error) {
         console.error('轮询错误:', error);
       }
-    }, 1000); // 每1秒轮询一次，确保实时性
+    }, 500); // 每500ms轮询一次，实现准实时
   }
 
   // 停止轮询
@@ -176,6 +160,40 @@ class SimpleChatAPI {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+    }
+  }
+
+  // 立即获取最新数据（用于事件驱动更新）
+  async fetchLatestData() {
+    if (!this.isConnected) return;
+
+    try {
+      console.log('⚡ 立即获取最新数据...');
+      
+      // 并行获取消息和用户列表
+      const [messagesResponse, usersResponse] = await Promise.all([
+        fetch(`${this.baseUrl}/api/messages`),
+        fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`)
+      ]);
+
+      // 处理消息
+      if (messagesResponse.ok) {
+        const messages = await messagesResponse.json();
+        if (this.messageCallback) {
+          this.messageCallback(messages);
+        }
+      }
+
+      // 处理用户列表
+      if (usersResponse.ok) {
+        const users = await usersResponse.json();
+        console.log(`⚡ 立即获取到其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
+        if (this.usersCallback) {
+          this.usersCallback(users);
+        }
+      }
+    } catch (error) {
+      console.error('❌ 立即获取数据失败:', error);
     }
   }
 
@@ -226,19 +244,8 @@ class SimpleChatAPI {
         const result = await response.json();
         console.log('✅ 消息发送成功:', result);
         
-        // 消息发送成功后，立即获取一次消息列表，确保实时性
-        try {
-          const messagesResponse = await fetch(`${this.baseUrl}/api/messages`);
-          if (messagesResponse.ok) {
-            const messages = await messagesResponse.json();
-            console.log(`📨 消息发送后立即获取消息列表: ${messages.length} 条消息`);
-            if (this.messageCallback) {
-              this.messageCallback(messages);
-            }
-          }
-        } catch (error) {
-          console.error('❌ 消息发送后获取消息列表失败:', error);
-        }
+        // 消息发送成功后，立即获取最新状态，确保实时性
+        await this.fetchLatestData();
         
         return true;
       } else {

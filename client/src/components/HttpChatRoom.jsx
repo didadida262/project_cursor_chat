@@ -104,9 +104,12 @@ function HttpChatRoom() {
       }
     };
 
-    // 页面获得焦点时重新连接（处理刷新后的情况）
+    // 页面获得焦点时立即获取最新数据
     const handleFocus = () => {
-      if (!isConnectedRef.current && userInfoRef.current) {
+      if (isConnectedRef.current) {
+        console.log('👁️ 页面重新获得焦点，立即获取最新数据');
+        chatAPI.current.fetchLatestData();
+      } else if (userInfoRef.current) {
         console.log('👁️ 页面重新获得焦点，尝试重新连接');
         // 延迟重新连接，避免频繁请求
         setTimeout(() => {
