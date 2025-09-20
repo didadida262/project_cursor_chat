@@ -97,30 +97,60 @@ function HttpChatRoom() {
     });
 
     // 页面卸载时自动离开
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (event) => {
       if (userInfoRef.current && isConnectedRef.current) {
         // 使用 sendBeacon 确保请求能够发送
         const data = JSON.stringify({ userId: userInfoRef.current.id });
-        navigator.sendBeacon(`${baseUrl}/api/leave`, data);
-        console.log('🚪 页面卸载，自动离开聊天室');
+        const success = navigator.sendBeacon(`${baseUrl}/api/leave`, data);
+        console.log('🚪 页面卸载，自动离开聊天室', success ? '成功' : '失败');
+        
+        // 如果 sendBeacon 失败，尝试同步请求
+        if (!success) {
+          try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${baseUrl}/api/leave`, false); // 同步请求
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(data);
+            console.log('🚪 同步请求离开聊天室完成');
+          } catch (error) {
+            console.error('🚪 同步请求失败:', error);
+          }
+        }
       }
     };
 
     // 页面隐藏时也离开（移动端切换应用时）
     const handleVisibilityChange = () => {
       if (document.hidden && userInfoRef.current && isConnectedRef.current) {
+        console.log('👁️ 页面隐藏，开始离开聊天室');
         chatAPI.current.disconnect();
-        console.log('👁️ 页面隐藏，离开聊天室');
+        console.log('👁️ 页面隐藏，离开聊天室完成');
+      }
+    };
+
+    // 页面获得焦点时重新连接（处理刷新后的情况）
+    const handleFocus = () => {
+      if (!isConnectedRef.current && userInfoRef.current) {
+        console.log('👁️ 页面重新获得焦点，尝试重新连接');
+        // 延迟重新连接，避免频繁请求
+        setTimeout(() => {
+          if (!isConnectedRef.current && userInfoRef.current) {
+            console.log('🔄 尝试重新连接到聊天室');
+            chatAPI.current.connect(userInfoRef.current);
+          }
+        }, 1000);
       }
     };
 
     // 添加事件监听器
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []); // 空依赖数组，只在组件挂载时执行一次
 

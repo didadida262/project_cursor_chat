@@ -197,8 +197,21 @@ class SimpleChatAPI {
       // 优先使用 sendBeacon，确保在页面卸载时也能发送
       if (navigator.sendBeacon) {
         const data = JSON.stringify({ userId: this.userId });
-        navigator.sendBeacon(`${this.baseUrl}/api/leave`, data);
-        console.log('📤 使用 sendBeacon 发送离开请求');
+        const success = navigator.sendBeacon(`${this.baseUrl}/api/leave`, data);
+        console.log('📤 使用 sendBeacon 发送离开请求', success ? '成功' : '失败');
+        
+        // 如果 sendBeacon 失败，尝试同步请求
+        if (!success) {
+          try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${this.baseUrl}/api/leave`, false); // 同步请求
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(data);
+            console.log('📤 同步请求离开聊天室完成');
+          } catch (error) {
+            console.error('📤 同步请求失败:', error);
+          }
+        }
       } else {
         // 降级到普通 fetch
         fetch(`${this.baseUrl}/api/leave`, {
