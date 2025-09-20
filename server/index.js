@@ -176,42 +176,46 @@ const memoryMessages = [];
 const HEARTBEAT_TIMEOUT = 30000; // 30秒无响应视为离线
 const HEARTBEAT_CHECK_INTERVAL = 15000; // 每15秒检查一次
 
-// 临时禁用心跳检测，测试是否是心跳检测导致的问题
-// setInterval(() => {
-//   const now = Date.now();
-//   const inactiveUsers = [];
-//   
-//   // 检查所有用户的心跳
-//   for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
-//     if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-//       inactiveUsers.push(userId);
-//     }
-//   }
-//   
-//   // 清理离线用户
-//   if (inactiveUsers.length > 0) {
-//     console.log(`💔 检测到 ${inactiveUsers.length} 个离线用户，正在清理...`);
-//     
-//     inactiveUsers.forEach(userId => {
-//       const user = onlineUsers.get(userId);
-//       if (user) {
-//         onlineUsers.delete(userId);
-//         userHeartbeats.delete(userId);
-//         console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId})`);
-//       }
-//     });
-//     
-//     // 广播更新后的用户列表（节流）
-//     broadcastUsersThrottled();
-//   }
-//   
-//   // 定期记录当前状态，便于调试
-//   if (onlineUsers.size > 0) {
-//     console.log(`💓 心跳检测完成，当前在线: ${onlineUsers.size} 人`);
-//   }
-// }, HEARTBEAT_CHECK_INTERVAL);
+// 心跳检测 - 自动清理离线用户
+setInterval(async () => {
+  const now = Date.now();
+  const inactiveUsers = [];
+  
+  // 检查所有用户的心跳
+  for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
+    if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+      inactiveUsers.push(userId);
+    }
+  }
+  
+  // 清理离线用户
+  if (inactiveUsers.length > 0) {
+    console.log(`💔 检测到 ${inactiveUsers.length} 个离线用户，正在清理...`);
+    
+    for (const userId of inactiveUsers) {
+      const user = onlineUsers.get(userId);
+      if (user) {
+        onlineUsers.delete(userId);
+        userHeartbeats.delete(userId);
+        
+        // 同时从PostgreSQL删除
+        await removeUser(userId);
+        
+        console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId})`);
+      }
+    }
+    
+    // 广播更新后的用户列表（节流）
+    broadcastUsersThrottled();
+  }
+  
+  // 定期记录当前状态，便于调试
+  if (onlineUsers.size > 0) {
+    console.log(`💓 心跳检测完成，当前在线: ${onlineUsers.size} 人`);
+  }
+}, HEARTBEAT_CHECK_INTERVAL);
 
-console.log('⚠️ 心跳检测已临时禁用，用于测试');
+console.log('✅ 心跳检测已启用，自动清理离线用户');
 
 // 消息存储相关的辅助函数
 const HISTORY_LIMIT = 50;
@@ -262,43 +266,55 @@ async function saveUser(userData) {
 async function removeUser(userId) {
   try {
     if (pool) {
-      await pool.query(
-        'UPDATE users SET is_online = false, last_heartbeat = CURRENT_TIMESTAMP WHERE id = $1',
-        [userId]
-      );
-      console.log(`💾 用户状态已更新为离线: ${userId}`);
+      // 直接删除用户记录，而不是标记为离线
+      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+      console.log(`💾 用户已从PostgreSQL删除: ${userId}`);
     }
   } catch (error) {
-    console.error('更新用户状态到PostgreSQL失败:', error);
+    console.error('从PostgreSQL删除用户失败:', error);
   }
 }
 
 async function getAllOnlineUsers() {
   try {
     console.log(`💾 [${serverInstanceId}] getAllOnlineUsers被调用，PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
+    
+    // 优先使用内存中的用户列表，确保数据一致性
+    const memoryUsers = Array.from(onlineUsers.values());
+    console.log(`💾 [${serverInstanceId}] 从内存获取在线用户: ${memoryUsers.length} 人`, memoryUsers.map(u => u.nickname));
+    
     if (pool) {
       console.log(`💾 [${serverInstanceId}] 开始从PostgreSQL查询在线用户...`);
       
       // 先确保表存在
       await ensureTablesExist();
       
-      const result = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
-      const users = result.rows.map(row => ({
+      // 清理PostgreSQL中不在内存中的用户
+      const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY last_heartbeat DESC');
+      const dbUsers = dbResult.rows.map(row => ({
         id: row.id,
         nickname: row.nickname,
         isOnline: row.is_online,
         joinTime: row.join_time,
         lastHeartbeat: row.last_heartbeat
       }));
-      console.log(`💾 [${serverInstanceId}] 从PostgreSQL加载在线用户: ${users.length} 人`, users);
-      return users;
-    } else {
-      console.log(`💾 [${serverInstanceId}] PostgreSQL未连接，返回空用户列表`);
-      return [];
+      
+      // 删除PostgreSQL中存在但内存中不存在的用户
+      for (const dbUser of dbUsers) {
+        if (!onlineUsers.has(dbUser.id)) {
+          await pool.query('DELETE FROM users WHERE id = $1', [dbUser.id]);
+          console.log(`🧹 清理PostgreSQL中的无效用户: ${dbUser.nickname}`);
+        }
+      }
+      
+      console.log(`💾 [${serverInstanceId}] PostgreSQL用户清理完成`);
     }
+    
+    return memoryUsers;
   } catch (error) {
-    console.error(`❌ [${serverInstanceId}] 从PostgreSQL加载用户失败:`, error);
-    return [];
+    console.error(`❌ [${serverInstanceId}] 获取在线用户失败:`, error);
+    // 出错时返回内存中的用户列表
+    return Array.from(onlineUsers.values());
   }
 }
 
@@ -541,12 +557,20 @@ app.post('/api/join', async (req, res) => {
   console.log(`📊 [${serverInstanceId}] 加入前在线用户: ${onlineUsers.size} 人`);
   console.log(`📊 [${serverInstanceId}] PostgreSQL连接状态: ${pool ? '已连接' : '未连接'}`);
   
+  // 检查是否已存在相同ID的用户（防止重复加入）
+  if (onlineUsers.has(userData.id)) {
+    console.log(`🔄 用户ID已存在，更新现有用户: ${userData.nickname}`);
+    onlineUsers.delete(userData.id);
+    userHeartbeats.delete(userData.id);
+  }
+  
   // 检查是否已存在相同昵称的用户
   const existingUser = Array.from(onlineUsers.values()).find(u => u.nickname === userData.nickname);
   if (existingUser) {
-    // 如果存在相同昵称，更新现有用户的ID和加入时间
+    // 如果存在相同昵称，删除现有用户
     onlineUsers.delete(existingUser.id);
-    console.log(`🔄 更新现有用户昵称: ${userData.nickname}`);
+    userHeartbeats.delete(existingUser.id);
+    console.log(`🔄 删除重复昵称用户: ${userData.nickname} (ID: ${existingUser.id})`);
   }
   
   const user = {
@@ -567,7 +591,6 @@ app.post('/api/join', async (req, res) => {
   console.log(`✅ [${serverInstanceId}] 用户通过API加入: ${user.nickname} (ID: ${user.id})`);
   console.log(`👥 [${serverInstanceId}] 当前在线用户: ${onlineUsers.size} 人`);
   console.log(`📊 [${serverInstanceId}] 用户列表:`, Array.from(onlineUsers.values()).map(u => `${u.nickname}(id:${u.id})`));
-  console.log(`📊 [${serverInstanceId}] onlineUsers Map内容:`, Array.from(onlineUsers.entries()));
   
   res.json({ success: true, user });
 });
