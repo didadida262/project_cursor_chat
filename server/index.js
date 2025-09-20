@@ -173,8 +173,8 @@ function broadcastUsersThrottled() {
 const memoryMessages = [];
 
 // 心跳检测配置
-const HEARTBEAT_TIMEOUT = 10000; // 10秒无响应视为离线
-const HEARTBEAT_CHECK_INTERVAL = 5000; // 每5秒检查一次
+const HEARTBEAT_TIMEOUT = 30000; // 30秒无响应视为离线
+const HEARTBEAT_CHECK_INTERVAL = 15000; // 每15秒检查一次
 
 // 心跳检测 - 自动清理离线用户
 setInterval(async () => {
@@ -183,7 +183,15 @@ setInterval(async () => {
   
   // 检查所有用户的心跳
   for (const [userId, lastHeartbeat] of userHeartbeats.entries()) {
-    if (now - lastHeartbeat > HEARTBEAT_TIMEOUT) {
+    const timeSinceLastHeartbeat = now - lastHeartbeat;
+    
+    // 记录心跳状态，便于调试
+    if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT * 0.7) { // 超过70%超时时间时警告
+      const user = onlineUsers.get(userId);
+      console.log(`⚠️ 用户 ${user?.nickname || userId} 心跳延迟: ${Math.round(timeSinceLastHeartbeat/1000)}秒`);
+    }
+    
+    if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT) {
       inactiveUsers.push(userId);
     }
   }
@@ -195,13 +203,14 @@ setInterval(async () => {
     for (const userId of inactiveUsers) {
       const user = onlineUsers.get(userId);
       if (user) {
+        const timeSinceLastHeartbeat = now - userHeartbeats.get(userId);
+        console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId}), 最后心跳: ${Math.round(timeSinceLastHeartbeat/1000)}秒前`);
+        
         onlineUsers.delete(userId);
         userHeartbeats.delete(userId);
         
         // 同时从PostgreSQL删除
         await removeUser(userId);
-        
-        console.log(`🧹 清理离线用户: ${user.nickname} (ID: ${userId})`);
       }
     }
     
@@ -216,6 +225,7 @@ setInterval(async () => {
 }, HEARTBEAT_CHECK_INTERVAL);
 
 console.log('✅ 心跳检测已启用，自动清理离线用户');
+console.log(`💓 心跳检测配置: 超时时间=${HEARTBEAT_TIMEOUT/1000}秒, 检查间隔=${HEARTBEAT_CHECK_INTERVAL/1000}秒`);
 
 // 定期强制清理无效用户（每30秒执行一次）
 setInterval(async () => {
@@ -533,40 +543,25 @@ app.post('/api/clear-users', (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    // 优先从PostgreSQL获取用户列表
-    const dbUsers = await getAllOnlineUsers();
-    
-    // 同时检查内存中的用户列表（用于调试）
+    // 直接使用内存中的用户列表，确保实时性
     const memoryUsers = Array.from(onlineUsers.values());
     
     console.log(`📊 [${serverInstanceId}] API请求用户列表`);
-    console.log(`📊 [${serverInstanceId}] PostgreSQL在线用户: ${dbUsers.length} 人`);
     console.log(`📊 [${serverInstanceId}] 内存在线用户: ${memoryUsers.length} 人`);
-    console.log(`📊 [${serverInstanceId}] 用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+    console.log(`📊 [${serverInstanceId}] 用户详情:`, memoryUsers.map(u => `${u.nickname}(id:${u.id})`));
     
-    // 如果PostgreSQL有数据，使用PostgreSQL的数据
-    if (dbUsers.length > 0) {
-      console.log(`✅ [${serverInstanceId}] 使用PostgreSQL用户数据`);
-      res.json(dbUsers);
-    } 
-    // 如果PostgreSQL没有数据，但有内存数据，同步到PostgreSQL
-    else if (memoryUsers.length > 0) {
-      console.log(`🔄 [${serverInstanceId}] PostgreSQL无数据，同步内存数据到PostgreSQL`);
+    // 同时更新PostgreSQL中的数据，保持数据一致性
+    if (memoryUsers.length > 0 && pool) {
       for (const user of memoryUsers) {
         await saveUser(user);
       }
-      res.json(memoryUsers);
     }
-    // 都没有数据，返回空数组
-    else {
-      console.log(`⚠️ [${serverInstanceId}] 无在线用户数据`);
-      res.json([]);
-    }
+    
+    res.json(memoryUsers);
   } catch (error) {
     console.error(`❌ [${serverInstanceId}] 获取用户列表失败:`, error);
-    // 出错时回退到内存数据
-    const memoryUsers = Array.from(onlineUsers.values());
-    res.json(memoryUsers);
+    // 出错时返回空数组
+    res.json([]);
   }
 });
 

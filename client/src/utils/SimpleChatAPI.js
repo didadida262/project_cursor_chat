@@ -74,15 +74,23 @@ class SimpleChatAPI {
       try {
         // 发送心跳
         if (this.userId && this.isConnected) {
-          fetch(`${this.baseUrl}/api/heartbeat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId: this.userId })
-          }).catch(error => {
-            console.error('心跳发送失败:', error);
-          });
+          try {
+            const heartbeatResponse = await fetch(`${this.baseUrl}/api/heartbeat`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ userId: this.userId })
+            });
+            
+            if (!heartbeatResponse.ok) {
+              console.error('💓 心跳发送失败:', heartbeatResponse.status);
+            } else {
+              console.log('💓 心跳发送成功');
+            }
+          } catch (error) {
+            console.error('💓 心跳发送网络错误:', error);
+          }
         } else if (this.userId && !this.isConnected) {
           console.error('❌ 未连接，无法发送心跳');
         }
