@@ -675,15 +675,26 @@ app.post('/api/clear-users', async (req, res) => {
 // 获取在线用户列表 - 完全基于数据库
 app.get('/api/users', async (req, res) => {
   try {
-    console.log(`📊 [${serverInstanceId}] /api/users 请求`);
+    const { exclude } = req.query; // 排除的用户ID
+    console.log(`📊 [${serverInstanceId}] /api/users 请求，排除用户: ${exclude || '无'}`);
     
     if (!pool) {
       console.error(`❌ [${serverInstanceId}] 数据库未连接`);
       return res.json([]);
     }
     
-    // 直接从数据库获取用户列表
-    const dbResult = await pool.query('SELECT * FROM users WHERE is_online = true ORDER BY join_time ASC');
+    // 从数据库获取用户列表，排除指定用户
+    let query = 'SELECT * FROM users WHERE is_online = true';
+    let params = [];
+    
+    if (exclude) {
+      query += ' AND id != $1';
+      params.push(exclude);
+    }
+    
+    query += ' ORDER BY join_time ASC';
+    
+    const dbResult = await pool.query(query, params);
     const dbUsers = dbResult.rows.map(row => ({
       id: row.id,
       nickname: row.nickname,
@@ -691,8 +702,8 @@ app.get('/api/users', async (req, res) => {
       joinTime: row.join_time
     }));
     
-    console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length}`);
-    console.log(`📊 [${serverInstanceId}] 用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
+    console.log(`📊 [${serverInstanceId}] 数据库用户数量: ${dbUsers.length} (排除: ${exclude || '无'})`);
+    console.log(`📊 [${serverInstanceId}] 其他用户详情:`, dbUsers.map(u => `${u.nickname}(id:${u.id})`));
     
     res.json(dbUsers);
   } catch (error) {

@@ -92,10 +92,10 @@ class SimpleChatAPI {
         // 连接成功后立即获取一次用户列表
         setTimeout(async () => {
           try {
-            const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+            const usersResponse = await fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`);
             if (usersResponse.ok) {
               const users = await usersResponse.json();
-              console.log(`📊 连接后立即获取用户列表: ${users.length} 人`, users.map(u => u.nickname));
+              console.log(`📊 连接后立即获取其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
               if (this.usersCallback) {
                 this.usersCallback(users);
               }
@@ -164,10 +164,10 @@ class SimpleChatAPI {
 
         // 获取用户列表（每次轮询都获取，确保实时性）
         try {
-          const usersResponse = await fetch(`${this.baseUrl}/api/users`);
+          const usersResponse = await fetch(`${this.baseUrl}/api/users?exclude=${this.userId}`);
           if (usersResponse.ok) {
             const users = await usersResponse.json();
-            console.log(`📊 轮询获取到用户列表: ${users.length} 人`, users.map(u => u.nickname));
+            console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
             if (this.usersCallback) {
               this.usersCallback(users);
             }
