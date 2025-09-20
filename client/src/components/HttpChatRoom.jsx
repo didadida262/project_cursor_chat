@@ -186,68 +186,20 @@ function HttpChatRoom() {
       }
     };
 
-    // 页面隐藏时显示确认弹窗（移动端切换应用时）
+    // 页面隐藏时的处理（只记录日志，不显示确认弹窗）
     const handleVisibilityChange = () => {
       console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
-      // 只有在页面真正隐藏且用户已连接时才显示确认
-      if (document.hidden && userInfoRef.current && isConnectedRef.current && !isLeaving && !modalVisibleRef.current) {
-        console.log('👁️ 页面隐藏，显示离开确认弹窗');
-        
-        modalVisibleRef.current = true;
-        Modal.confirm({
-          title: '🔄 确认离开聊天室',
-          content: '页面即将隐藏，确定要离开聊天室吗？',
-          okText: '确认离开',
-          cancelText: '取消',
-          okType: 'danger',
-          className: 'custom-modal-transparent',
-          onOk: async () => {
-            setIsLeaving(true);
-            console.log('👁️ 用户确认离开，开始删除用户数据...');
-            
-            try {
-              await chatAPI.current.disconnect('page_refresh');
-              console.log('✅ 用户数据删除成功');
-              
-              // 跳转到输入名称页面
-              setShowNicknameInput(true);
-              setUserInfo(null);
-              setIsConnected(false);
-              setMessages([]);
-              setUsers([]);
-              setNickname('');
-              
-              // 显示成功提示
-              notification.success({
-                message: '👋 已离开聊天室',
-                description: '已成功从聊天室中移除',
-                placement: 'topRight',
-                duration: 2,
-              });
-              
-            } catch (error) {
-              console.error('❌ 删除用户数据失败:', error);
-              notification.error({
-                message: '❌ 离开失败',
-                description: '离开聊天室时发生错误，请重试',
-                placement: 'topRight',
-                duration: 3,
-              });
-            } finally {
-              setIsLeaving(false);
-              modalVisibleRef.current = false;
-            }
-          },
-          onCancel: () => {
-            // 用户点击取消，不做任何操作，弹框消失
-            console.log('👁️ 用户取消离开聊天室');
-            modalVisibleRef.current = false;
-          }
-        });
+      
+      if (document.hidden && userInfoRef.current && isConnectedRef.current) {
+        console.log('👁️ 页面隐藏，用户切换到其他标签页，但仍在聊天室中');
+      } else if (!document.hidden && userInfoRef.current && isConnectedRef.current) {
+        console.log('👁️ 页面重新显示，用户回到聊天室');
+        // 页面重新获得焦点时立即获取最新数据
+        chatAPI.current.fetchLatestData();
       }
     };
 
-    // 页面获得焦点时立即获取最新数据
+    // 页面获得焦点时的处理
     const handleFocus = () => {
       if (isConnectedRef.current) {
         console.log('👁️ 页面重新获得焦点，立即获取最新数据');
