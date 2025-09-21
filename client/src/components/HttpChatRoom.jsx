@@ -124,66 +124,46 @@ function HttpChatRoom() {
 
     console.log('📡 用户已连接，添加页面事件监听器');
 
-    // 页面卸载时显示确认弹窗
+    // 页面卸载时的处理（直接删除用户数据，不显示确认弹窗）
     const handleBeforeUnload = (event) => {
-      if (userInfoRef.current && isConnectedRef.current && !isLeaving && !modalVisibleRef.current) {
-        event.preventDefault();
-        event.returnValue = '';
+      if (userInfoRef.current && isConnectedRef.current && !isLeaving) {
+        console.log('🚪 页面即将卸载，直接删除用户数据');
         
-        modalVisibleRef.current = true;
-        console.log('🚪 显示离开确认弹框');
-        
-        Modal.confirm({
-          title: '🚪 确认离开聊天室',
-          content: '确定要离开聊天室吗？离开后将从在线用户列表中移除。',
-          okText: '确认离开',
-          cancelText: '取消',
-          okType: 'danger',
-          className: 'custom-modal-transparent',
-          onOk: async () => {
-            setIsLeaving(true);
-            console.log('🚪 用户确认离开，开始删除用户数据...');
+        // 直接删除用户数据，不等待用户确认
+        // 使用 sendBeacon 确保请求能够发送成功
+        try {
+          if (chatAPI.current && chatAPI.current.userId) {
+            const baseUrl = process.env.NODE_ENV === 'production' 
+              ? window.location.origin 
+              : 'http://localhost:3002';
             
-            try {
-              // 调用 disconnect 删除用户数据
-              await chatAPI.current.disconnect('tab_close');
-              console.log('✅ 用户数据删除成功');
+            // 使用 sendBeacon 发送删除请求
+            const success = navigator.sendBeacon(
+              `${baseUrl}/api/leave`,
+              JSON.stringify({
+                userId: chatAPI.current.userId,
+                reason: 'tab_close'
+              })
+            );
+            
+            if (success) {
+              console.log('✅ 用户数据删除请求已发送');
+            } else {
+              console.warn('⚠️ 用户数据删除请求发送失败，尝试同步请求');
               
-              // 跳转到输入名称页面
-              setShowNicknameInput(true);
-              setUserInfo(null);
-              setIsConnected(false);
-              setMessages([]);
-              setUsers([]);
-              setNickname('');
-              
-              // 显示成功提示
-              notification.success({
-                message: '👋 已离开聊天室',
-                description: '已成功从聊天室中移除',
-                placement: 'topRight',
-                duration: 2,
-              });
-              
-            } catch (error) {
-              console.error('❌ 删除用户数据失败:', error);
-              notification.error({
-                message: '❌ 离开失败',
-                description: '离开聊天室时发生错误，请重试',
-                placement: 'topRight',
-                duration: 3,
-              });
-            } finally {
-              setIsLeaving(false);
-              modalVisibleRef.current = false;
+              // 如果 sendBeacon 失败，尝试同步请求
+              const xhr = new XMLHttpRequest();
+              xhr.open('POST', `${baseUrl}/api/leave`, false); // 同步请求
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.send(JSON.stringify({
+                userId: chatAPI.current.userId,
+                reason: 'tab_close'
+              }));
             }
-          },
-          onCancel: () => {
-            // 用户点击取消，不做任何操作，弹框消失
-            console.log('🚪 用户取消离开聊天室');
-            modalVisibleRef.current = false;
           }
-        });
+        } catch (error) {
+          console.error('❌ 删除用户数据失败:', error);
+        }
       }
     };
 
