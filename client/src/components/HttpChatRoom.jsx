@@ -128,9 +128,49 @@ function HttpChatRoom() {
     const handleBeforeUnload = (event) => {
       if (userInfoRef.current && isConnectedRef.current && !isLeaving) {
         console.log('🚪 页面即将卸载，直接删除用户数据');
+        handleUserLeave('tab_close');
+      }
+    };
+
+    // 页面隐藏时的处理
+    const handleVisibilityChange = () => {
+      console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
+      
+      if (document.hidden && userInfoRef.current && isConnectedRef.current) {
+        console.log('👁️ 页面隐藏，用户切换到其他标签页，但仍在聊天室中');
         
-        // 直接删除用户数据，不等待用户确认
-        // 使用 sendBeacon 确保请求能够发送成功
+        // 设置一个定时器，如果页面长时间隐藏，可能是用户关闭了标签页
+        // 给一个较短的时间窗口来检测是否真的是标签页关闭
+        const hiddenStartTime = Date.now();
+        
+        const checkIfStillHidden = () => {
+          if (document.hidden) {
+            const hiddenDuration = Date.now() - hiddenStartTime;
+            
+            // 如果页面隐藏超过3秒，可能是用户关闭了标签页
+            // 此时主动删除用户数据
+            if (hiddenDuration > 3000) {
+              console.log('🚪 页面长时间隐藏，可能是标签页被关闭，主动删除用户数据');
+              handleUserLeave('tab_close');
+            }
+          }
+        };
+        
+        // 3秒后检查页面是否仍然隐藏
+        setTimeout(checkIfStillHidden, 3000);
+        
+      } else if (!document.hidden && userInfoRef.current && isConnectedRef.current) {
+        console.log('👁️ 页面重新显示，用户回到聊天室');
+        // 页面重新获得焦点时立即获取最新数据
+        chatAPI.current.fetchLatestData();
+      }
+    };
+    
+    // 统一的用户离开处理函数
+    const handleUserLeave = (reason) => {
+      if (userInfoRef.current && isConnectedRef.current) {
+        console.log(`🚪 处理用户离开，原因: ${reason}`);
+        
         try {
           if (chatAPI.current && chatAPI.current.userId) {
             const baseUrl = process.env.NODE_ENV === 'production' 
@@ -142,14 +182,14 @@ function HttpChatRoom() {
               `${baseUrl}/api/leave`,
               JSON.stringify({
                 userId: chatAPI.current.userId,
-                reason: 'tab_close'
+                reason: reason
               })
             );
             
             if (success) {
-              console.log('✅ 用户数据删除请求已发送');
+              console.log(`✅ 用户数据删除请求已发送 (${reason})`);
             } else {
-              console.warn('⚠️ 用户数据删除请求发送失败，尝试同步请求');
+              console.warn(`⚠️ 用户数据删除请求发送失败，尝试同步请求 (${reason})`);
               
               // 如果 sendBeacon 失败，尝试同步请求
               const xhr = new XMLHttpRequest();
@@ -157,26 +197,13 @@ function HttpChatRoom() {
               xhr.setRequestHeader('Content-Type', 'application/json');
               xhr.send(JSON.stringify({
                 userId: chatAPI.current.userId,
-                reason: 'tab_close'
+                reason: reason
               }));
             }
           }
         } catch (error) {
           console.error('❌ 删除用户数据失败:', error);
         }
-      }
-    };
-
-    // 页面隐藏时的处理（只记录日志，不显示确认弹窗）
-    const handleVisibilityChange = () => {
-      console.log('👁️ 页面可见性变化:', document.hidden ? '隐藏' : '显示');
-      
-      if (document.hidden && userInfoRef.current && isConnectedRef.current) {
-        console.log('👁️ 页面隐藏，用户切换到其他标签页，但仍在聊天室中');
-      } else if (!document.hidden && userInfoRef.current && isConnectedRef.current) {
-        console.log('👁️ 页面重新显示，用户回到聊天室');
-        // 页面重新获得焦点时立即获取最新数据
-        chatAPI.current.fetchLatestData();
       }
     };
 
@@ -424,7 +451,7 @@ function HttpChatRoom() {
         <Card className="nickname-card">
           <div className="nickname-input-content">
             <Title level={3} style={{ color: '#ffffff', marginBottom: 24 }}>
-              欢迎来到聊天室
+              欢迎来到加密屏道
             </Title>
             <Input
               placeholder="请输入您的昵称"
@@ -441,7 +468,7 @@ function HttpChatRoom() {
               loading={isJoining}
               disabled={!nickname.trim() || isJoining}
             >
-              {isJoining ? '正在加入...' : '加入聊天室'}
+              {isJoining ? '正在加入...' : '加入加密屏道'}
             </Button>
           </div>
         </Card>
