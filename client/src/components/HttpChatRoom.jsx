@@ -21,6 +21,7 @@ function HttpChatRoom() {
   const [showNicknameInput, setShowNicknameInput] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const messagesEndRef = useRef(null);
   const chatAPI = useRef(null);
   const userInfoRef = useRef(null);
@@ -250,84 +251,101 @@ function HttpChatRoom() {
     if (nickname.trim()) {
       const trimmedNickname = nickname.trim();
       
+      // 设置loading状态
+      setIsJoining(true);
+      
       console.log('🚀 用户尝试加入聊天室:', trimmedNickname);
       
-      // 先检查昵称是否已存在
-      console.log('🔍 开始检查昵称是否已存在...');
-      const nicknameCheck = await chatAPI.current.checkNickname(trimmedNickname);
-      
-      if (nicknameCheck.exists) {
-        // 昵称已存在，显示警告
-        notification.warning({
-          message: '⚠️ 昵称冲突',
-          description: `💥 ${nicknameCheck.message}`,
-          placement: 'topRight',
-          duration: 5,
-        });
-        console.log('⚠️ 昵称已存在:', nicknameCheck.message);
-        return;
-      }
-      
-      if (nicknameCheck.error) {
-        // 检查过程中发生错误
-        notification.error({
-          message: '❌ 检查失败',
-          description: `💔 ${nicknameCheck.error}`,
-          placement: 'topRight',
-          duration: 5,
-        });
-        console.error('❌ 昵称检查失败:', nicknameCheck.error);
-        return;
-      }
-      
-      // 昵称可用，继续加入聊天室
-      const user = {
-        id: generateUserId(),
-        nickname: trimmedNickname,
-        timestamp: new Date().toISOString()
-      };
-
-      console.log('✅ 昵称检查通过，开始连接聊天室:', user);
-      
-      // 先尝试连接，成功后再更新本地状态
-      const success = await chatAPI.current.connect(user);
-      
-      if (success) {
-        // 连接成功后才更新本地状态
-        setUserInfo(user);
-        setIsConnected(true);
-        setShowNicknameInput(false);
+      try {
+        // 先检查昵称是否已存在
+        console.log('🔍 开始检查昵称是否已存在...');
+        const nicknameCheck = await chatAPI.current.checkNickname(trimmedNickname);
         
-        notification.success({
-          message: '🎊 加入成功',
-          description: `🌟 欢迎 ${user.nickname} 进入聊天室！`,
-          placement: 'topRight',
-          duration: 4,
-        });
-        console.log('✅ 成功加入聊天室');
-        
-        // 立即获取一次用户列表，减少延迟
-        try {
-          const baseUrl = process.env.NODE_ENV === 'production' 
-            ? window.location.origin 
-            : 'http://localhost:3002';
-          const usersResponse = await fetch(`${baseUrl}/api/users`);
-          if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            setUsers(users);
-          }
-        } catch (error) {
-          console.error('获取用户列表失败:', error);
+        if (nicknameCheck.exists) {
+          // 昵称已存在，显示警告
+          notification.warning({
+            message: '⚠️ 昵称冲突',
+            description: `💥 ${nicknameCheck.message}`,
+            placement: 'topRight',
+            duration: 5,
+          });
+          console.log('⚠️ 昵称已存在:', nicknameCheck.message);
+          return;
         }
-      } else {
-        // 连接失败，不更新本地状态
+        
+        if (nicknameCheck.error) {
+          // 检查过程中发生错误
+          notification.error({
+            message: '❌ 检查失败',
+            description: `💔 ${nicknameCheck.error}`,
+            placement: 'topRight',
+            duration: 5,
+          });
+          console.error('❌ 昵称检查失败:', nicknameCheck.error);
+          return;
+        }
+        
+        // 昵称可用，继续加入聊天室
+        const user = {
+          id: generateUserId(),
+          nickname: trimmedNickname,
+          timestamp: new Date().toISOString()
+        };
+
+        console.log('✅ 昵称检查通过，开始连接聊天室:', user);
+        
+        // 先尝试连接，成功后再更新本地状态
+        const success = await chatAPI.current.connect(user);
+        
+        if (success) {
+          // 连接成功后才更新本地状态
+          setUserInfo(user);
+          setIsConnected(true);
+          setShowNicknameInput(false);
+          
+          // 显示成功提示
+          notification.success({
+            message: '🎊 加入成功',
+            description: `🌟 欢迎 ${user.nickname} 进入聊天室！`,
+            placement: 'topRight',
+            duration: 4,
+          });
+          console.log('✅ 成功加入聊天室');
+          
+          // 立即获取一次用户列表，减少延迟
+          try {
+            const baseUrl = process.env.NODE_ENV === 'production' 
+              ? window.location.origin 
+              : 'http://localhost:3002';
+            const usersResponse = await fetch(`${baseUrl}/api/users`);
+            if (usersResponse.ok) {
+              const users = await usersResponse.json();
+              setUsers(users);
+            }
+          } catch (error) {
+            console.error('获取用户列表失败:', error);
+          }
+        } else {
+          // 连接失败，不更新本地状态
+          notification.error({
+            message: '💥 加入失败',
+            description: '😢 加入聊天室失败，请重试',
+            placement: 'topRight',
+            duration: 5,
+          });
+          console.error('❌ 加入聊天室失败');
+        }
+      } catch (error) {
+        console.error('❌ 加入聊天室过程中发生错误:', error);
         notification.error({
           message: '💥 加入失败',
-          description: '😢 加入聊天室失败，请重试',
+          description: '😢 加入聊天室时发生错误，请重试',
           placement: 'topRight',
           duration: 5,
         });
-        console.error('❌ 加入聊天室失败');
+      } finally {
+        // 无论成功还是失败，都要取消loading状态
+        setIsJoining(false);
       }
     }
   };
@@ -436,8 +454,14 @@ function HttpChatRoom() {
               style={{ marginBottom: 16 }}
               prefix={<UserOutlined />}
             />
-            <Button type="primary" block onClick={handleJoinChat}>
-              加入聊天室
+            <Button 
+              type="primary" 
+              block 
+              onClick={handleJoinChat}
+              loading={isJoining}
+              disabled={!nickname.trim() || isJoining}
+            >
+              {isJoining ? '正在加入...' : '加入聊天室'}
             </Button>
           </div>
         </Card>
