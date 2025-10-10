@@ -227,7 +227,10 @@
   background: linear-gradient(90deg, #6ea8ff 0%, #7b61ff 35%, #ff4ecd 70%, #ff9f43 100%);
   border: none;
   height: 100px !important;
-  font-weight: 600;
+  font-weight: 800;
+  font-size: 18px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 255, 255, 0.4);
   border-radius: 0px !important;
   flex-shrink: 0;
   min-width: 60px;
@@ -246,8 +249,11 @@
   background: linear-gradient(90deg, #5ad8ff 0%, #5f7bff 33%, #b35bff 66%, #ff6ab0 100%);
   border: none;
   height: 44px;
-  font-weight: 700;
+  font-weight: 900;
+  font-size: 18px;
   letter-spacing: 0.5px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 12px rgba(255, 255, 255, 0.5);
   box-shadow: 0 10px 24px rgba(95, 123, 255, 0.35), 0 6px 16px rgba(255, 106, 176, 0.3);
 }
 
