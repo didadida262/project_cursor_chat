@@ -15,7 +15,7 @@ function App() {
         <Layout className="app-layout">
           <Header className="app-header">
             <div className="header-content">
-              <h1>在线聊天室</h1>
+              <h1>加密频道</h1>
             </div>
           </Header>
           <Content className="app-content">

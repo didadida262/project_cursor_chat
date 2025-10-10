@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "正在启动在线聊天室项目..."
+echo "正在启动加密频道项目..."
 echo
 
 echo "检查Node.js版本..."
