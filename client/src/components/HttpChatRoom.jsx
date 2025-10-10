@@ -46,6 +46,9 @@ function HttpChatRoom() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
+  useEffect(() => {
+    console.log('isMessagesLoading>>>>>>>>>>>>>>>>', isMessagesLoading);
+  }, [isMessagesLoading]);
 
   useEffect(() => {
     scrollToBottom();
@@ -70,6 +73,7 @@ function HttpChatRoom() {
       if (Array.isArray(newMessages)) {
         // 与本地 pending 消息做合并，避免乐观消息闪烁
         setMessages((prev) => {
+            setIsMessagesLoading(false);
           const pending = prev.filter(m => m.isPending);
           if (pending.length === 0) return newMessages;
 
@@ -95,10 +99,6 @@ function HttpChatRoom() {
             }
           });
 
-          // 首次收到消息后，关闭加载态
-          if (isMessagesLoading) {
-            setIsMessagesLoading(false);
-          }
 
           return merged;
         });

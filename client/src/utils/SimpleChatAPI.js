@@ -117,11 +117,9 @@ class SimpleChatAPI {
 
     this.pollingInterval = setInterval(async () => {
       if (!this.isConnected) {
-        console.log('🔄 轮询跳过：未连接');
         return;
       }
 
-      console.log('🔄 开始轮询...');
       try {
         // 并行获取消息和用户列表，提高效率
         const [messagesResponse, usersResponse] = await Promise.all([
@@ -140,13 +138,10 @@ class SimpleChatAPI {
         // 处理用户列表
         if (usersResponse.ok) {
           const users = await usersResponse.json();
-          console.log(`📊 轮询获取到其他用户列表: ${users.length} 人`, users.map(u => u.nickname));
           if (this.usersCallback) {
-            console.log(`📊 调用用户列表回调，当前用户ID: ${this.userId}`);
             this.usersCallback(users);
           }
         } else {
-          console.error('❌ 获取用户列表失败:', usersResponse.status, usersResponse.statusText);
           const errorText = await usersResponse.text();
           console.error('❌ 错误响应内容:', errorText);
         }
