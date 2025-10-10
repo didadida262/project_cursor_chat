@@ -224,19 +224,42 @@
 }
 
 .input-container .ant-btn-primary {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(90deg, #6ea8ff 0%, #7b61ff 35%, #ff4ecd 70%, #ff9f43 100%);
   border: none;
   height: 100px !important;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: 0px !important;
   flex-shrink: 0;
   min-width: 60px;
+  filter: saturate(1.2);
+  box-shadow: 0 8px 24px rgba(123, 97, 255, 0.35), 0 4px 12px rgba(255, 78, 205, 0.25);
 }
 
 .input-container .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  background: linear-gradient(90deg, #7db3ff 0%, #8b73ff 35%, #ff6ad9 70%, #ffb35e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(123, 97, 255, 0.5), 0 6px 16px rgba(255, 106, 217, 0.35);
+}
+
+/* 昵称输入页的加入按钮更鲜亮 */
+.nickname-join-btn.ant-btn-primary {
+  background: linear-gradient(90deg, #5ad8ff 0%, #5f7bff 33%, #b35bff 66%, #ff6ab0 100%);
+  border: none;
+  height: 44px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 10px 24px rgba(95, 123, 255, 0.35), 0 6px 16px rgba(255, 106, 176, 0.3);
+}
+
+.nickname-join-btn.ant-btn-primary:hover {
+  background: linear-gradient(90deg, #6ee0ff 0%, #728aff 33%, #c36bff 66%, #ff7cbf 100%);
+}
+
+.nickname-join-btn.ant-btn-primary:disabled,
+.nickname-join-btn.ant-btn-primary[disabled] {
+  background: linear-gradient(90deg, rgba(90,216,255,0.5) 0%, rgba(95,123,255,0.5) 33%, rgba(179,91,255,0.5) 66%, rgba(255,106,176,0.5) 100%);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 /* 空状态样式 */

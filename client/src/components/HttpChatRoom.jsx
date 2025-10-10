@@ -469,6 +469,7 @@ function HttpChatRoom() {
             <Button 
               type="primary" 
               block 
+              className="nickname-join-btn"
               onClick={handleJoinChat}
               loading={isJoining}
               disabled={!nickname.trim() || isJoining}
