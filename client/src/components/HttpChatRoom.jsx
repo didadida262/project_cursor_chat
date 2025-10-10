@@ -371,16 +371,32 @@ function HttpChatRoom() {
     if (currentMessage.trim() && userInfo && isConnected) {
       const messageText = currentMessage.trim();
       console.log('✅ 条件检查通过，开始发送消息:', messageText);
-      
-      // 立即清空输入框，提供即时反馈
+
+      // 构造本地待确认消息（乐观更新）
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const pendingMsg = {
+        id: tempId,
+        userId: userInfo.id,
+        nickname: userInfo.nickname,
+        message: messageText,
+        timestamp: Date.now(),
+        isPending: true
+      };
+
+      // 立即在本地显示消息并清空输入框
+      setMessages(prev => [...prev, pendingMsg]);
       setCurrentMessage('');
-      
+      scrollToBottom();
+
       const success = await chatAPI.current.sendMessage(messageText);
-      
+
       if (success) {
         console.log('✅ 消息发送成功');
+        // 成功后等待服务端广播的正式消息覆盖本地列表；
+        // 如果有延迟也可在此处移除 pending，但通常广播会很快到达
       } else {
-        // 发送失败时恢复输入框内容
+        // 发送失败：移除本地 pending，恢复输入框
+        setMessages(prev => prev.filter(m => m.id !== tempId));
         setCurrentMessage(messageText);
         notification.error({
           message: '💥 发送失败',
