@@ -67,7 +67,30 @@ function HttpChatRoom() {
     // 设置回调 - 使用稳定的引用
     chatAPI.current.onMessage((newMessages) => {
       if (Array.isArray(newMessages)) {
-        setMessages(newMessages);
+        // 与本地 pending 消息做合并，避免乐观消息闪烁
+        setMessages((prev) => {
+          const pending = prev.filter(m => m.isPending);
+          if (pending.length === 0) return newMessages;
+
+          const merged = [...newMessages];
+
+          pending.forEach(p => {
+            // 匹配同一条消息（无服务器 id 的情况下，使用文本 + 用户 + 时间窗近似匹配）
+            const hasMatch = newMessages.some(s => {
+              if (!s) return false;
+              const serverTs = typeof s.timestamp === 'string' ? Date.parse(s.timestamp) : Number(s.timestamp);
+              const localTs = typeof p.timestamp === 'string' ? Date.parse(p.timestamp) : Number(p.timestamp);
+              const withinWindow = isFinite(serverTs) && isFinite(localTs) ? Math.abs(serverTs - localTs) <= 5000 : true;
+              return s.message === p.message && s.nickname === p.nickname && withinWindow;
+            });
+
+            if (!hasMatch) {
+              merged.push(p); // 仍未从服务器返回，保留本地 pending
+            }
+          });
+
+          return merged;
+        });
       }
     });
     
