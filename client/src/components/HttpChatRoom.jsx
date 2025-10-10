@@ -78,10 +78,15 @@ function HttpChatRoom() {
             // 匹配同一条消息（无服务器 id 的情况下，使用文本 + 用户 + 时间窗近似匹配）
             const hasMatch = newMessages.some(s => {
               if (!s) return false;
+              // 首选使用 userId + message 精确匹配
+              if (s.userId && p.userId) {
+                return s.userId === p.userId && String(s.message) === String(p.message);
+              }
+              // 回退：使用昵称 + 文本 + 更宽时间窗匹配
               const serverTs = typeof s.timestamp === 'string' ? Date.parse(s.timestamp) : Number(s.timestamp);
               const localTs = typeof p.timestamp === 'string' ? Date.parse(p.timestamp) : Number(p.timestamp);
-              const withinWindow = isFinite(serverTs) && isFinite(localTs) ? Math.abs(serverTs - localTs) <= 5000 : true;
-              return s.message === p.message && s.nickname === p.nickname && withinWindow;
+              const withinWindow = isFinite(serverTs) && isFinite(localTs) ? Math.abs(serverTs - localTs) <= 60000 : true;
+              return String(s.message) === String(p.message) && s.nickname === p.nickname && withinWindow;
             });
 
             if (!hasMatch) {
