@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Input, Button, Typography, Card, Space, Empty, App, notification, Modal } from 'antd';
+import { Layout, Input, Button, Typography, Card, Space, Empty, App, notification, Modal, Spin } from 'antd';
 import { SendOutlined, UserOutlined } from '@ant-design/icons';
 import SimpleUserCard from './SimpleUserCard';
 import DraggableCurrentUserCard from './DraggableCurrentUserCard';
@@ -22,6 +22,7 @@ function HttpChatRoom() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const chatAPI = useRef(null);
   const userInfoRef = useRef(null);
@@ -93,6 +94,11 @@ function HttpChatRoom() {
               merged.push(p); // 仍未从服务器返回，保留本地 pending
             }
           });
+
+          // 首次收到消息后，关闭加载态
+          if (isMessagesLoading) {
+            setIsMessagesLoading(false);
+          }
 
           return merged;
         });
@@ -337,6 +343,7 @@ function HttpChatRoom() {
           setUserInfo(user);
           setIsConnected(true);
           setShowNicknameInput(false);
+          setIsMessagesLoading(true); // 进入聊天后先显示消息加载中
           
           // 显示成功提示
           notification.success({
@@ -569,7 +576,11 @@ function HttpChatRoom() {
         {/* 右侧聊天区域 - 占据30%宽度 */}
         <Content className="chat-content">
           <div className="messages-container">
-            {messages.length === 0 ? (
+            {isMessagesLoading ? (
+              <div className="empty-chat">
+                <Spin tip="消息加载中..." size="large" />
+              </div>
+            ) : messages.length === 0 ? (
               <div className="empty-chat">
                 <Empty 
                   description="暂无消息" 
