@@ -30,6 +30,12 @@
   text-align: center;
 }
 
+/* 昵称输入框内边距（影响占位符和输入文本）
+   antd 有前缀时会包一层 .ant-input-affix-wrapper，实际文本在 .ant-input */
+.nickname-input .ant-input {
+  padding-left: 16px !important; /* 控制文本与输入框左边界的距离 */
+}
+
 /* 左侧用户列表区域 */
 .users-sidebar {
   background: rgba(255, 255, 255, 0.05);

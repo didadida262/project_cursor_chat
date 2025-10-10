@@ -454,12 +454,17 @@ function HttpChatRoom() {
               欢迎来到加密屏道
             </Title>
             <Input
+              className="nickname-input"
               placeholder="请输入您的昵称"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               onPressEnter={handleJoinChat}
-              style={{ marginBottom: 16 }}
-              prefix={<UserOutlined />}
+              style={{
+                marginBottom: 16,
+                height: 52,
+                padding: '10px 14px'
+              }}
+              prefix={<UserOutlined style={{ marginRight: 8 }} />}
             />
             <Button 
               type="primary" 
