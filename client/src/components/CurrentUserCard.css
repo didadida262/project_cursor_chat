@@ -144,32 +144,135 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+/* 超大屏幕 (1440px+) */
+@media (min-width: 1440px) {
+  .current-user-card .video-container {
+    height: 260px;
+  }
+  
+  .current-user-card .control-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
+  
+  .current-user-card .user-nickname {
+    font-size: 16px;
+  }
+}
+
+/* 中等屏幕 (1024px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .current-user-card .video-container {
+    height: 220px;
+  }
+  
+  .current-user-card .control-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+}
+
+/* 平板设备 (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
   .current-user-card {
-    width: 240px !important;
-    height: 240px !important;
+    width: clamp(220px, 25vw, 280px) !important;
+    height: auto !important;
   }
   
   .current-user-card .video-container {
-    height: 180px;
+    height: clamp(180px, 20vh, 220px);
   }
   
   .current-user-card .controls-container {
+    height: 56px;
+    padding: 0 12px;
+  }
+  
+  .current-user-card .control-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .current-user-card .user-nickname {
+    font-size: 13px;
+  }
+}
+
+/* 小屏设备 (480px - 767px) */
+@media (max-width: 767px) and (min-width: 480px) {
+  .current-user-card {
+    width: clamp(180px, 30vw, 240px) !important;
+    height: auto !important;
+  }
+  
+  .current-user-card .video-container {
+    height: clamp(140px, 18vh, 180px);
+  }
+  
+  .current-user-card .controls-container {
+    height: 52px;
+    padding: 0 10px;
+  }
+  
+  .current-user-card .control-buttons {
+    gap: 8px;
+  }
+  
+  .current-user-card .control-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  
+  .current-user-card .user-nickname {
+    font-size: 12px;
+  }
+  
+  .current-user-card .video-placeholder svg {
+    width: 60px;
     height: 60px;
   }
 }
 
-@media (max-width: 480px) {
+/* 超小屏设备 (< 480px) */
+@media (max-width: 479px) {
   .current-user-card {
-    width: 180px !important;
-    height: 180px !important;
+    width: clamp(150px, 35vw, 200px) !important;
+    height: auto !important;
   }
   
   .current-user-card .video-container {
-    height: 120px;
+    height: clamp(110px, 15vh, 150px);
   }
   
   .current-user-card .controls-container {
-    height: 60px;
+    height: 48px;
+    padding: 0 8px;
+  }
+  
+  .current-user-card .control-buttons {
+    gap: 6px;
+  }
+  
+  .current-user-card .control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .current-user-card .user-nickname {
+    font-size: 11px;
+  }
+  
+  .current-user-card .video-placeholder svg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .current-user-card .placeholder-text {
+    font-size: 10px;
   }
 }

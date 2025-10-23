@@ -109,32 +109,135 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+/* 超大屏幕 (1440px+) */
+@media (min-width: 1440px) {
+  .other-user-card .video-container {
+    height: 260px;
+  }
+  
+  .other-user-card .status-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .other-user-card .user-nickname {
+    font-size: 16px;
+  }
+}
+
+/* 中等屏幕 (1024px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .other-user-card .video-container {
+    height: 220px;
+  }
+  
+  .other-user-card .status-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+
+/* 平板设备 (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
   .other-user-card {
-    width: 240px !important;
-    height: 240px !important;
+    width: clamp(220px, 25vw, 280px) !important;
+    height: auto !important;
   }
   
   .other-user-card .video-container {
-    height: 180px;
+    height: clamp(180px, 20vh, 220px);
   }
   
   .other-user-card .status-container {
+    height: 56px;
+    padding: 0 12px;
+  }
+  
+  .other-user-card .status-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+  
+  .other-user-card .user-nickname {
+    font-size: 13px;
+  }
+}
+
+/* 小屏设备 (480px - 767px) */
+@media (max-width: 767px) and (min-width: 480px) {
+  .other-user-card {
+    width: clamp(180px, 30vw, 240px) !important;
+    height: auto !important;
+  }
+  
+  .other-user-card .video-container {
+    height: clamp(140px, 18vh, 180px);
+  }
+  
+  .other-user-card .status-container {
+    height: 52px;
+    padding: 0 10px;
+  }
+  
+  .other-user-card .status-indicators {
+    gap: 6px;
+  }
+  
+  .other-user-card .status-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  
+  .other-user-card .user-nickname {
+    font-size: 12px;
+  }
+  
+  .other-user-card .video-placeholder svg {
+    width: 60px;
     height: 60px;
   }
 }
 
-@media (max-width: 480px) {
+/* 超小屏设备 (< 480px) */
+@media (max-width: 479px) {
   .other-user-card {
-    width: 180px !important;
-    height: 180px !important;
+    width: clamp(150px, 35vw, 200px) !important;
+    height: auto !important;
   }
   
   .other-user-card .video-container {
-    height: 120px;
+    height: clamp(110px, 15vh, 150px);
   }
   
   .other-user-card .status-container {
-    height: 60px;
+    height: 48px;
+    padding: 0 8px;
+  }
+  
+  .other-user-card .status-indicators {
+    gap: 4px;
+  }
+  
+  .other-user-card .status-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+  
+  .other-user-card .user-nickname {
+    font-size: 11px;
+  }
+  
+  .other-user-card .video-placeholder svg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .other-user-card .placeholder-text {
+    font-size: 10px;
   }
 }

@@ -309,35 +309,268 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
+/* 超大屏幕 (1440px+) */
+@media (min-width: 1440px) {
+  .nickname-card {
+    width: 480px;
+  }
+  
+  .nickname-card .ant-card-body {
+    padding: 40px;
+  }
+  
+  .input-container {
+    padding: 24px;
+  }
+  
+  .input-container .ant-input,
+  .input-container .ant-input-textarea {
+    height: 110px !important;
+    font-size: 15px;
+  }
+  
+  .input-container .ant-btn-primary {
+    height: 110px !important;
+    font-size: 20px;
+    min-width: 70px;
+  }
+  
+  .message-text {
+    font-size: 15px;
+  }
+}
+
+/* 大屏幕 (1200px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1200px) {
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+}
+
+/* 中等屏幕 (1024px - 1199px) */
+@media (max-width: 1199px) and (min-width: 1024px) {
   .users-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
   }
+  
+  .input-container .ant-input,
+  .input-container .ant-input-textarea {
+    height: 90px !important;
+  }
+  
+  .input-container .ant-btn-primary {
+    height: 90px !important;
+    font-size: 16px;
+  }
 }
 
-@media (max-width: 768px) {
+/* 平板设备 (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .nickname-card {
+    width: clamp(320px, 60vw, 400px);
+  }
+  
+  .nickname-card .ant-card-body {
+    padding: 28px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  
+  .input-container {
+    padding: 16px;
+    min-height: 120px;
+  }
+  
+  .input-container .ant-input,
+  .input-container .ant-input-textarea {
+    height: 80px !important;
+    font-size: 14px;
+  }
+  
+  .input-container .ant-btn-primary {
+    height: 80px !important;
+    font-size: 16px;
+    min-width: 55px;
+  }
+  
+  .messages-container {
+    padding-bottom: 140px;
+  }
+  
+  .message-text {
+    font-size: 13px;
+  }
+}
+
+/* 小屏设备 (480px - 767px) */
+@media (max-width: 767px) and (min-width: 480px) {
   .simple-chat-room {
     flex-direction: column;
   }
   
+  .nickname-card {
+    width: clamp(280px, 80vw, 360px);
+  }
+  
+  .nickname-card .ant-card-body {
+    padding: 24px;
+  }
+  
+  .nickname-join-btn.ant-btn-primary {
+    height: 40px;
+    font-size: 16px;
+  }
+  
   .users-sidebar {
     width: 100% !important;
-    height: 200px;
+    height: 180px;
     max-width: none !important;
+    padding: 12px;
   }
   
   .users-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  
+  .chat-content {
+    height: calc(100vh - 180px);
+  }
+  
+  .messages-container {
+    padding: 16px;
+    padding-bottom: 120px;
+  }
+  
+  .input-container {
+    padding: 12px;
+    min-height: 100px;
+  }
+  
+  .input-container .ant-input,
+  .input-container .ant-input-textarea {
+    height: 70px !important;
+    font-size: 13px;
+  }
+  
+  .input-container .ant-btn-primary {
+    height: 70px !important;
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 50px;
+  }
+  
+  .message-content {
+    max-width: 80%;
+  }
+  
+  .message-text {
+    font-size: 13px;
+  }
+  
+  .message-nickname {
+    font-size: 11px;
+  }
+  
+  .message-time {
+    font-size: 10px;
+  }
+}
+
+/* 超小屏设备 (< 480px) */
+@media (max-width: 479px) {
+  .simple-chat-room {
+    flex-direction: column;
+  }
+  
+  .nickname-card {
+    width: clamp(240px, 90vw, 320px);
+  }
+  
+  .nickname-card .ant-card-body {
+    padding: 20px;
+  }
+  
+  .nickname-join-btn.ant-btn-primary {
+    height: 38px;
+    font-size: 15px;
+  }
+  
+  .nickname-input .ant-input {
+    padding-left: 12px !important;
+    font-size: 14px;
+  }
+  
+  .users-sidebar {
+    width: 100% !important;
+    height: 150px;
+    max-width: none !important;
+    padding: 8px;
+  }
+  
+  .users-header {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;
   }
   
   .chat-content {
-    height: calc(100vh - 200px);
+    height: calc(100vh - 150px);
   }
   
   .messages-container {
-    max-height: calc(100vh - 280px);
+    padding: 12px;
+    padding-bottom: 100px;
+  }
+  
+  .input-container {
+    padding: 8px;
+    min-height: 85px;
+    gap: 8px;
+  }
+  
+  .input-container .ant-input,
+  .input-container .ant-input-textarea {
+    height: 60px !important;
+    font-size: 12px;
+  }
+  
+  .input-container .ant-btn-primary {
+    height: 60px !important;
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 45px;
+  }
+  
+  .message-content {
+    max-width: 85%;
+    padding: 10px 14px;
+  }
+  
+  .message-text {
+    font-size: 12px;
+  }
+  
+  .message-nickname {
+    font-size: 10px;
+  }
+  
+  .message-time {
+    font-size: 9px;
+  }
+  
+  .message-header {
+    gap: 8px;
+    margin-bottom: 4px;
   }
 }
 

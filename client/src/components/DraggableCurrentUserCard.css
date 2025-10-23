@@ -84,31 +84,93 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
-  .image-container {
-    height: 180px;
+/* 超大屏幕 (1440px+) */
+@media (min-width: 1440px) {
+  .draggable-current-user-card .image-container {
+    height: 264px; /* 330 * 0.8 */
   }
   
-  .name-container {
-    height: 45px;
+  .draggable-current-user-card .name-container {
+    height: 66px; /* 330 * 0.2 */
   }
   
-  .user-name {
-    font-size: 12px;
+  .draggable-current-user-card .user-name {
+    font-size: 16px;
   }
 }
 
-@media (max-width: 480px) {
-  .image-container {
-    height: 140px;
+/* 中等屏幕 (1024px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .draggable-current-user-card .image-container {
+    height: 224px;
   }
   
-  .name-container {
-    height: 35px;
+  .draggable-current-user-card .name-container {
+    height: 56px;
   }
   
-  .user-name {
+  .draggable-current-user-card .user-name {
+    font-size: 14px;
+  }
+}
+
+/* 平板设备 (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .draggable-current-user-card {
+    max-width: clamp(220px, 25vw, 280px);
+  }
+  
+  .draggable-current-user-card .image-container {
+    height: clamp(160px, 18vh, 200px);
+  }
+  
+  .draggable-current-user-card .name-container {
+    height: clamp(40px, 6vh, 50px);
+  }
+  
+  .draggable-current-user-card .user-name {
+    font-size: 13px;
+    padding: 0 12px;
+  }
+}
+
+/* 小屏设备 (480px - 767px) */
+@media (max-width: 767px) and (min-width: 480px) {
+  .draggable-current-user-card {
+    max-width: clamp(160px, 30vw, 220px);
+  }
+  
+  .draggable-current-user-card .image-container {
+    height: clamp(120px, 15vh, 160px);
+  }
+  
+  .draggable-current-user-card .name-container {
+    height: clamp(35px, 5vh, 45px);
+  }
+  
+  .draggable-current-user-card .user-name {
+    font-size: 12px;
+    padding: 0 10px;
+  }
+}
+
+/* 超小屏设备 (< 480px) */
+@media (max-width: 479px) {
+  .draggable-current-user-card {
+    max-width: clamp(120px, 35vw, 180px);
+  }
+  
+  .draggable-current-user-card .image-container {
+    height: clamp(90px, 12vh, 130px);
+  }
+  
+  .draggable-current-user-card .name-container {
+    height: clamp(28px, 4vh, 38px);
+  }
+  
+  .draggable-current-user-card .user-name {
     font-size: 11px;
+    padding: 0 8px;
   }
 }
 
@@ -126,3 +188,4 @@
 .draggable-current-user-card.dragging .name-container {
   background-color: #0f1419;
 }
+

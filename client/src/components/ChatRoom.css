@@ -180,30 +180,167 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+/* 超大屏幕 (1440px+) */
+@media (min-width: 1440px) {
+  .nickname-card {
+    max-width: 500px;
+    padding: 48px;
+  }
+  
   .user-sidebar {
-    width: 280px !important;
+    min-width: 360px;
+    max-width: 380px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  
+  .message {
+    max-width: 65%;
+    padding: 18px 22px;
+    font-size: 15px;
+  }
+  
+  .input-container {
+    padding: 24px;
+  }
+}
+
+/* 中等屏幕 (1024px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .user-sidebar {
+    min-width: 320px;
+    max-width: 350px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+}
+
+/* 平板设备 (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .nickname-card {
+    max-width: clamp(360px, 60vw, 450px);
+    padding: 32px;
+  }
+  
+  .user-sidebar {
+    width: clamp(280px, 35vw, 320px) !important;
     min-width: 280px !important;
-    max-width: 280px !important;
+    max-width: 320px !important;
   }
   
   .users-list {
     padding: 12px;
   }
   
+  .users-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  
   .message {
-    max-width: 85%;
+    max-width: 75%;
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+  
+  .message-header strong {
+    font-size: 13px;
+  }
+  
+  .message-content {
+    margin-left: 38px;
+    font-size: 13px;
+  }
+  
+  .input-container {
+    padding: 16px;
+  }
+}
+
+/* 小屏设备 (480px - 767px) */
+@media (max-width: 767px) and (min-width: 480px) {
+  .nickname-card {
+    max-width: clamp(300px, 70vw, 400px);
+    padding: 28px;
+  }
+  
+  .user-sidebar {
+    width: clamp(240px, 40vw, 280px) !important;
+    min-width: 240px !important;
+    max-width: 280px !important;
+  }
+  
+  .sidebar-header {
+    padding: 16px;
+  }
+  
+  .sidebar-header h4 {
+    font-size: 15px;
+  }
+  
+  .users-list {
+    padding: 10px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  
+  .message {
+    max-width: 80%;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  
+  .message-header {
+    gap: 8px;
+  }
+  
+  .message-header strong {
+    font-size: 12px;
+  }
+  
+  .message-header .ant-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .message-content {
+    margin-left: 34px;
+    font-size: 12px;
+  }
+  
+  .own-message .message-content {
+    font-size: 12px;
   }
   
   .input-container {
     padding: 12px;
   }
+  
+  .messages-container {
+    padding: 16px;
+  }
 }
 
-@media (max-width: 480px) {
+/* 超小屏设备 (< 480px) */
+@media (max-width: 479px) {
+  .nickname-card {
+    max-width: clamp(260px, 85vw, 340px);
+    padding: 24px;
+    border-radius: 16px;
+  }
+  
   .user-sidebar {
-    width: 250px !important;
-    min-width: 250px !important;
+    width: clamp(200px, 45vw, 250px) !important;
+    min-width: 200px !important;
     max-width: 250px !important;
   }
   
@@ -211,8 +348,48 @@
     padding: 12px;
   }
   
+  .sidebar-header h4 {
+    font-size: 14px;
+  }
+  
   .users-list {
     padding: 8px;
+  }
+  
+  .users-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  
+  .message {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 12px;
+  }
+  
+  .message-header {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  
+  .message-header strong {
+    font-size: 11px;
+  }
+  
+  .message-header .ant-avatar {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .message-content {
+    margin-left: 30px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  
+  .own-message .message-content {
+    font-size: 11px;
   }
   
   .messages-container {
@@ -220,6 +397,6 @@
   }
   
   .input-container {
-    padding: 8px;
+    padding: 10px;
   }
 }
