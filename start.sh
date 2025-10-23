@@ -13,6 +13,8 @@ node --version
 
 echo
 echo "安装依赖包..."
+# 使用本地缓存避免权限问题
+export npm_config_cache="$(pwd)/.npm-cache"
 npm run install-all
 
 echo
