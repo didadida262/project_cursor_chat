@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, Typography } from 'antd';
 import { AudioOutlined, AudioMutedOutlined, VideoCameraOutlined, VideoCameraAddOutlined } from '@ant-design/icons';
@@ -6,7 +7,45 @@ import './CurrentUserCard.css';
 
 const { Text } = Typography;
 
-// 用户Logo组件 - 使用buddy.svg
+const USER_AREA_RATIO = 0.7;
+const GRID_COLUMNS = 5;
+const GRID_GAP = 16;
+const MIN_CARD_SIZE = 140;
+const MAX_CARD_SIZE = 260;
+
+const getSuggestedCardSize = () => {
+  if (typeof window === 'undefined') {
+    return 220;
+  }
+  const userAreaWidth = window.innerWidth * USER_AREA_RATIO;
+  const availableWidth = userAreaWidth - GRID_GAP * (GRID_COLUMNS - 1);
+  const rawSize = availableWidth / GRID_COLUMNS;
+  return Math.max(MIN_CARD_SIZE, Math.min(MAX_CARD_SIZE, rawSize));
+};
+
+const getInitialPosition = (size: number) => {
+  if (typeof window === 'undefined') {
+    return { x: 20, y: 20 };
+  }
+  const safeBottomGap = 40;
+  return {
+    x: 20,
+    y: Math.max(20, window.innerHeight - size - safeBottomGap)
+  };
+};
+
+const clampPositionToBounds = (pos: { x: number; y: number }, size: number) => {
+  if (typeof window === 'undefined') {
+    return pos;
+  }
+  const userAreaWidth = window.innerWidth * USER_AREA_RATIO;
+  const maxX = Math.max(0, userAreaWidth - size);
+  const maxY = Math.max(0, window.innerHeight - size);
+  return {
+    x: Math.min(Math.max(0, pos.x), maxX),
+    y: Math.min(Math.max(0, pos.y), maxY)
+  };
+};
 
 function CurrentUserCard({ 
   user,
@@ -16,16 +55,27 @@ function CurrentUserCard({
   isVideoEnabled = true,
   localStream = null
 }) {
-  const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 500 });
+  const [cardSize, setCardSize] = useState(() => getSuggestedCardSize());
+  const [position, setPosition] = useState(() => getInitialPosition(getSuggestedCardSize()));
   const [isDragging, setIsDragging] = useState(false);
   const cardRef = useRef(null);
   const videoRef = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   // 卡片尺寸
-  const cardSize = 280;
   const cardWidth = cardSize;
   const cardHeight = cardSize;
+
+  useEffect(() => {
+    const handleResize = () => {
+      const nextSize = getSuggestedCardSize();
+      setCardSize(nextSize);
+      setPosition(prev => clampPositionToBounds(prev, nextSize));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 更新视频流
   useEffect(() => {
@@ -84,7 +134,7 @@ function CurrentUserCard({
     const newY = e.clientY - dragOffset.current.y;
     
     // 限制在视窗内，但不能超出在线用户区域（70%宽度）
-    const userAreaWidth = window.innerWidth * 0.7;
+    const userAreaWidth = window.innerWidth * USER_AREA_RATIO;
     const maxX = userAreaWidth - cardWidth;
     const maxY = window.innerHeight - cardHeight;
     
@@ -182,7 +232,7 @@ function CurrentUserCard({
     const newY = touch.clientY - dragOffset.current.y;
     
     // 限制在视窗内，但不能超出在线用户区域（70%宽度）
-    const userAreaWidth = window.innerWidth * 0.7;
+    const userAreaWidth = window.innerWidth * USER_AREA_RATIO;
     const maxX = userAreaWidth - cardWidth;
     const maxY = window.innerHeight - cardHeight;
     

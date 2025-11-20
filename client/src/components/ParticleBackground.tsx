@@ -1,15 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import type { FC } from 'react';
+import { useEffect, useRef } from 'react';
 import './ParticleBackground.css';
 
-const ParticleBackground = () => {
-  const canvasRef = useRef(null);
+const ParticleBackground: FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animationId;
+    if (!canvas) {
+      return;
+    }
 
-    // 设置canvas尺寸
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    let animationId: number;
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -18,8 +26,16 @@ const ParticleBackground = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // 粒子类
     class Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      opacity: number;
+      life: number;
+      maxLife: number;
+
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
@@ -34,13 +50,11 @@ const ParticleBackground = () => {
       update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.life--;
+        this.life -= 1;
 
-        // 边界检测
         if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
         if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
 
-        // 生命周期管理
         if (this.life <= 0) {
           this.x = Math.random() * canvas.width;
           this.y = Math.random() * canvas.height;
@@ -51,11 +65,14 @@ const ParticleBackground = () => {
       draw() {
         ctx.save();
         ctx.globalAlpha = (this.life / this.maxLife) * this.opacity;
-        
-        // 创建渐变
+
         const gradient = ctx.createRadialGradient(
-          this.x, this.y, 0,
-          this.x, this.y, this.size * 2
+          this.x,
+          this.y,
+          0,
+          this.x,
+          this.y,
+          this.size * 2
         );
         gradient.addColorStop(0, '#667eea');
         gradient.addColorStop(0.5, '#764ba2');
@@ -69,17 +86,11 @@ const ParticleBackground = () => {
       }
     }
 
-    // 创建粒子
-    const particles = [];
-    for (let i = 0; i < 50; i++) {
-      particles.push(new Particle());
-    }
+    const particles: Particle[] = Array.from({ length: 50 }, () => new Particle());
 
-    // 动画循环
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 绘制连接线
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -88,7 +99,7 @@ const ParticleBackground = () => {
 
           if (distance < 100) {
             ctx.save();
-            ctx.globalAlpha = (100 - distance) / 100 * 0.1;
+            ctx.globalAlpha = ((100 - distance) / 100) * 0.1;
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -100,8 +111,7 @@ const ParticleBackground = () => {
         }
       }
 
-      // 更新和绘制粒子
-      particles.forEach(particle => {
+      particles.forEach((particle) => {
         particle.update();
         particle.draw();
       });
@@ -109,7 +119,7 @@ const ParticleBackground = () => {
       animationId = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
@@ -117,12 +127,8 @@ const ParticleBackground = () => {
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="particle-background"
-    />
-  );
+  return <canvas ref={canvasRef} className="particle-background" />;
 };
 
 export default ParticleBackground;
+

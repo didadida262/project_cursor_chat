@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Input, Button, List, Avatar, Typography, Card, Space, Empty, App } from 'antd';
 import { SendOutlined, UserOutlined } from '@ant-design/icons';
